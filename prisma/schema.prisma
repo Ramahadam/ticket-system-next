@@ -1,0 +1,161 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  standard
+  analyst
+  admin
+}
+
+enum TicketStatus {
+  loged
+  progress
+  hold
+  fulfilled
+  canceled
+}
+
+enum ChangeStatus {
+  requested
+  pending_approval @map("pending approval")
+  approved
+  cancelled
+  implemented
+}
+
+enum ChangeCategory {
+  software
+  hardware
+  network
+  servers
+  storage
+  exchange
+}
+
+enum ThemePreference {
+  light
+  dark
+  system
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  firstname    String?
+  lastname     String?
+  mobile       String?
+  userrole     UserRole @default(standard)
+  isActive     Boolean  @default(true)
+  file         String?
+  theme        ThemePreference @default(system)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  accounts Account[]
+  sessions Session[]
+
+  @@index([userrole, isActive])
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Incident {
+  id          Int          @id @default(autoincrement())
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  requester   String
+  summary     String
+  description String
+  priority    Int
+  impact      String
+  status      TicketStatus @default(loged)
+  owner       String?
+  notes       Json?
+  file        String?
+  deadline    DateTime?
+
+  @@index([requester])
+  @@index([status])
+  @@index([owner])
+}
+
+model ServiceRequest {
+  id          Int          @id @default(autoincrement())
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  requester   String
+  summary     String
+  description String
+  priority    Int
+  impact      String?
+  status      TicketStatus @default(loged)
+  owner       String?
+  notes       Json?
+  file        String?
+  deadline    DateTime?
+
+  @@index([requester])
+  @@index([status])
+  @@index([owner])
+}
+
+model ChangeRequest {
+  id             Int            @id @default(autoincrement())
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  requester      String
+  category       ChangeCategory
+  summary        String
+  description    String
+  classification Int
+  status         ChangeStatus   @default(requested)
+  owner          String?
+  rollback_plan  String
+  notes          Json?
+  file           String?
+
+  @@index([requester])
+  @@index([status])
+  @@index([owner])
+}
