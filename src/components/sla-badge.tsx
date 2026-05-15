@@ -1,7 +1,5 @@
-'use client';
-
 import { cn } from '@/lib/utils';
-import { getSlaStatus, getTimeLabel } from '@/lib/sla';
+import { getSlaStatus, getTimeLabel, type SlaStatus } from '@/lib/sla';
 
 interface SlaBadgeProps {
   deadline: Date | null | undefined;
@@ -9,17 +7,17 @@ interface SlaBadgeProps {
   className?: string;
 }
 
-const styles: Record<string, string> = {
-  none: 'bg-muted text-muted-foreground border-transparent',
+const styles: Record<SlaStatus, string> = {
+  none:     'bg-muted text-muted-foreground border-transparent',
   on_track: 'bg-green-100 text-green-800 border-transparent dark:bg-green-900/30 dark:text-green-400',
-  at_risk: 'bg-yellow-100 text-yellow-800 border-transparent dark:bg-yellow-900/30 dark:text-yellow-400',
+  at_risk:  'bg-yellow-100 text-yellow-800 border-transparent dark:bg-yellow-900/30 dark:text-yellow-400',
   breached: 'bg-destructive/10 text-destructive border-transparent dark:bg-destructive/20',
 };
 
-const labels: Record<string, string> = {
-  none: 'No SLA',
+const labels: Record<SlaStatus, string> = {
+  none:     'No SLA',
   on_track: 'On Track',
-  at_risk: 'At Risk',
+  at_risk:  'At Risk',
   breached: 'Breached',
 };
 
