@@ -4,6 +4,7 @@ import { requireUser } from '@/lib/auth-helpers';
 import { NewTicketModal } from '@/components/new-ticket-modal';
 import { SiteHeader } from '@/components/site-header';
 import { Badge } from '@/components/ui/badge';
+import { StatusPill } from '@/components/status-pill';
 import { SlaBadge } from '@/components/sla-badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -164,7 +165,7 @@ async function IncidentsSection({
                       </Link>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline">{t.status}</Badge>
+                      <StatusPill status={t.status} />
                     </TableCell>
                     <TableCell>
                       <PriorityBadge priority={t.priority} />
@@ -237,7 +238,7 @@ async function RequestsSection({
                       </Link>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline">{t.status}</Badge>
+                      <StatusPill status={t.status} />
                     </TableCell>
                     <TableCell>
                       <PriorityBadge priority={t.priority} />
@@ -309,7 +310,7 @@ async function ChangeSection({
                       </Link>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline">{t.status}</Badge>
+                      <StatusPill status={t.status} />
                     </TableCell>
                     <TableCell>
                       {CLASSIFICATION_LABELS[t.classification] ?? t.classification}

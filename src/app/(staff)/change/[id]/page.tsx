@@ -7,6 +7,7 @@ import { prisma } from '@/lib/prisma';
 import { isStaff } from '@/lib/permissions';
 import { SiteHeader } from '@/components/site-header';
 import { Badge } from '@/components/ui/badge';
+import { StatusPill } from '@/components/status-pill';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -74,7 +75,7 @@ export default async function ChangeRequestDetailPage({
           <CardHeader>
             <CardTitle className="flex flex-wrap items-center gap-2">
               <span>{row.summary}</span>
-              <Badge variant="outline">{row.status}</Badge>
+              <StatusPill status={row.status} />
               <Badge variant="secondary">
                 {CLASSIFICATION_LABELS[row.classification] ?? row.classification}
               </Badge>

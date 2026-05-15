@@ -10,6 +10,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { StatusPill } from '@/components/status-pill';
 import { SlaBadge } from '@/components/sla-badge';
 import {
   Table,
@@ -150,7 +151,7 @@ export default async function ServiceRequestsListPage({
                         </Link>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline">{t.status}</Badge>
+                        <StatusPill status={t.status} />
                       </TableCell>
                       <TableCell><PriorityBadge priority={t.priority} /></TableCell>
                       <TableCell className="text-muted-foreground">

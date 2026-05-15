@@ -7,6 +7,7 @@ import { prisma } from '@/lib/prisma';
 import { isStaff } from '@/lib/permissions';
 import { SiteHeader } from '@/components/site-header';
 import { Badge } from '@/components/ui/badge';
+import { StatusPill } from '@/components/status-pill';
 import { SlaBadge } from '@/components/sla-badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -75,7 +76,7 @@ export default async function IncidentDetailPage({
           <CardHeader>
             <CardTitle className="flex flex-wrap items-center gap-2">
               <span>{incident.summary}</span>
-              <Badge variant="outline">{incident.status}</Badge>
+              <StatusPill status={incident.status} />
               <PriorityBadge priority={incident.priority} />
             </CardTitle>
           </CardHeader>

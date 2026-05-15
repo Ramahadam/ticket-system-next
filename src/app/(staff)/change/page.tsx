@@ -10,6 +10,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { StatusPill } from '@/components/status-pill';
 import {
   Table,
   TableBody,
@@ -149,7 +150,7 @@ export default async function ChangeRequestsListPage({
                         </Link>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline">{t.status}</Badge>
+                        <StatusPill status={t.status} />
                       </TableCell>
                       <TableCell className="capitalize">{t.category}</TableCell>
                       <TableCell>
