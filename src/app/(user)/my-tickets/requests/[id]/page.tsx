@@ -5,6 +5,7 @@ import { format } from 'date-fns';
 import { requireUser } from '@/lib/auth-helpers';
 import { SiteHeader } from '@/components/site-header';
 import { Badge } from '@/components/ui/badge';
+import { SlaBadge } from '@/components/sla-badge';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -84,7 +85,10 @@ export default async function MyServiceRequestDetailPage({
               {row.deadline ? (
                 <div>
                   <dt className="text-xs text-muted-foreground">Deadline</dt>
-                  <dd>{format(row.deadline, 'PPp')}</dd>
+                  <dd className="flex flex-wrap items-center gap-2">
+                    {format(row.deadline, 'PPp')}
+                    <SlaBadge deadline={row.deadline} priority={row.priority} />
+                  </dd>
                 </div>
               ) : null}
               {row.file ? (
