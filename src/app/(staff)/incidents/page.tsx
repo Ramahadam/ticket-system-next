@@ -20,10 +20,10 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import {
-  PRIORITY_LABELS,
   TICKET_FILTER_OPTIONS,
   TICKET_SORT_OPTIONS,
 } from '@/lib/constants';
+import { PriorityBadge } from '@/components/priority-badge';
 import { isStaff } from '@/lib/permissions';
 import { getIncidentsList } from './data';
 
@@ -152,7 +152,7 @@ export default async function IncidentsListPage({
                       <TableCell>
                         <Badge variant="outline">{t.status}</Badge>
                       </TableCell>
-                      <TableCell>{PRIORITY_LABELS[t.priority] ?? t.priority}</TableCell>
+                      <TableCell><PriorityBadge priority={t.priority} /></TableCell>
                       <TableCell className="text-muted-foreground">
                         {t.requester}
                       </TableCell>

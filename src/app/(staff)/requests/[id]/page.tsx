@@ -18,7 +18,7 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { ServiceRequestEditForm } from '@/components/service-request-edit-form';
 import { DeleteServiceRequestButton } from '@/components/delete-service-request-button';
-import { PRIORITY_LABELS } from '@/lib/constants';
+import { PriorityBadge } from '@/components/priority-badge';
 import type { TicketNote } from '@/lib/ticket-helpers';
 import { getServiceRequest } from '../data';
 
@@ -76,9 +76,7 @@ export default async function ServiceRequestDetailPage({
             <CardTitle className="flex flex-wrap items-center gap-2">
               <span>{row.summary}</span>
               <Badge variant="outline">{row.status}</Badge>
-              <Badge variant="secondary">
-                {PRIORITY_LABELS[row.priority] ?? row.priority}
-              </Badge>
+              <PriorityBadge priority={row.priority} />
             </CardTitle>
           </CardHeader>
           <CardContent className="grid gap-2 text-sm">

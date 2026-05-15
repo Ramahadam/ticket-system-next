@@ -18,7 +18,7 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { IncidentEditForm } from '@/components/incident-edit-form';
 import { DeleteIncidentButton } from '@/components/delete-incident-button';
-import { PRIORITY_LABELS } from '@/lib/constants';
+import { PriorityBadge } from '@/components/priority-badge';
 import type { TicketNote } from '@/lib/ticket-helpers';
 import { getIncident } from '../data';
 
@@ -76,9 +76,7 @@ export default async function IncidentDetailPage({
             <CardTitle className="flex flex-wrap items-center gap-2">
               <span>{incident.summary}</span>
               <Badge variant="outline">{incident.status}</Badge>
-              <Badge variant="secondary">
-                {PRIORITY_LABELS[incident.priority] ?? incident.priority}
-              </Badge>
+              <PriorityBadge priority={incident.priority} />
             </CardTitle>
           </CardHeader>
           <CardContent className="grid gap-2 text-sm">

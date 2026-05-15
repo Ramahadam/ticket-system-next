@@ -19,7 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { PRIORITY_LABELS } from '@/lib/constants';
+import { PriorityBadge } from '@/components/priority-badge';
 import { getDashboardStats } from './data';
 import { NewTicketModal } from '@/components/new-ticket-modal';
 
@@ -127,7 +127,7 @@ export default async function DashboardPage() {
                         </TableCell>
                         <TableCell>
                           <Badge variant="outline">
-                            {PRIORITY_LABELS[t.priority] ?? t.priority}
+                            <PriorityBadge priority={t.priority} />
                           </Badge>
                         </TableCell>
                         <TableCell className="text-muted-foreground text-xs">

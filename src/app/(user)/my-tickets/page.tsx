@@ -23,8 +23,8 @@ import {
 import {
   CLASSIFICATION_LABELS,
   PAGE_SIZE,
-  PRIORITY_LABELS,
 } from '@/lib/constants';
+import { PriorityBadge } from '@/components/priority-badge';
 import { getIncidentsList } from '@/app/(staff)/incidents/data';
 import { getServiceRequestsList } from '@/app/(staff)/requests/data';
 import { getChangeRequestsList } from '@/app/(staff)/change/data';
@@ -167,7 +167,7 @@ async function IncidentsSection({
                       <Badge variant="outline">{t.status}</Badge>
                     </TableCell>
                     <TableCell>
-                      {PRIORITY_LABELS[t.priority] ?? t.priority}
+                      <PriorityBadge priority={t.priority} />
                     </TableCell>
                     <TableCell>
                       <SlaBadge deadline={t.deadline} priority={t.priority} />
@@ -240,7 +240,7 @@ async function RequestsSection({
                       <Badge variant="outline">{t.status}</Badge>
                     </TableCell>
                     <TableCell>
-                      {PRIORITY_LABELS[t.priority] ?? t.priority}
+                      <PriorityBadge priority={t.priority} />
                     </TableCell>
                     <TableCell>
                       <SlaBadge deadline={t.deadline} priority={t.priority} />
