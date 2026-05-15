@@ -62,6 +62,14 @@ For multi-step tasks, state a brief plan:
 
 Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
 
+## 5. Commit Frequently
+
+**Don't accumulate changes. Commit as you go.**
+
+- Commit after each logical unit of work (one feature, one fix, one refactor).
+- Don't batch unrelated changes into a single commit.
+- A commit should answer: "what changed and why?" — if the answer spans multiple concerns, split it.
+
 ---
 
 **These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
