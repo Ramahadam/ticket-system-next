@@ -4,6 +4,7 @@ import { requireUser } from '@/lib/auth-helpers';
 import { NewTicketModal } from '@/components/new-ticket-modal';
 import { SiteHeader } from '@/components/site-header';
 import { Badge } from '@/components/ui/badge';
+import { SlaBadge } from '@/components/sla-badge';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -140,6 +141,7 @@ async function IncidentsSection({
                   <TableHead>Summary</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Priority</TableHead>
+                  <TableHead>SLA</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -166,6 +168,9 @@ async function IncidentsSection({
                     </TableCell>
                     <TableCell>
                       {PRIORITY_LABELS[t.priority] ?? t.priority}
+                    </TableCell>
+                    <TableCell>
+                      <SlaBadge deadline={t.deadline} priority={t.priority} />
                     </TableCell>
                   </TableRow>
                 ))}
@@ -209,6 +214,7 @@ async function RequestsSection({
                   <TableHead>Summary</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Priority</TableHead>
+                  <TableHead>SLA</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -235,6 +241,9 @@ async function RequestsSection({
                     </TableCell>
                     <TableCell>
                       {PRIORITY_LABELS[t.priority] ?? t.priority}
+                    </TableCell>
+                    <TableCell>
+                      <SlaBadge deadline={t.deadline} priority={t.priority} />
                     </TableCell>
                   </TableRow>
                 ))}
