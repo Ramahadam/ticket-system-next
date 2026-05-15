@@ -18,9 +18,9 @@ export function getSlaStatus(
   if (!deadline) return 'none';
   const remaining = deadline.getTime() - now.getTime();
   if (remaining <= 0) return 'breached';
-  const window = WINDOW_MS[priority];
+  const windowMs = WINDOW_MS[priority];
   // Unknown priority has no defined window so at_risk threshold cannot be computed.
-  if (window && remaining / window < 0.25) return 'at_risk';
+  if (windowMs && remaining / windowMs < 0.25) return 'at_risk';
   return 'on_track';
 }
 
@@ -35,8 +35,8 @@ export function getTimeLabel(deadline: Date | null | undefined, now = new Date()
     const d = Math.floor(totalH / 24);
     const remH = totalH % 24;
     const suffix = remH ? ` ${remH}h` : '';
-    return diff < 0 ? `${d}d${suffix} overdue` : `${d}d${suffix} left`;
+    return diff <= 0 ? `${d}d${suffix} overdue` : `${d}d${suffix} left`;
   }
-  if (totalH > 0) return diff < 0 ? `${totalH}h ${m}m overdue` : `${totalH}h ${m}m left`;
-  return diff < 0 ? `${m}m overdue` : `${m}m left`;
+  if (totalH > 0) return diff <= 0 ? `${totalH}h ${m}m overdue` : `${totalH}h ${m}m left`;
+  return diff <= 0 ? `${m}m overdue` : `${m}m left`;
 }
