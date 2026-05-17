@@ -1,0 +1,22 @@
+# Beacon / Relay Redesign Todo
+
+- [x] Task 1: Normalize Relay tokens and base UI theme
+- [x] Task 2: Add domain presentation primitives
+- [x] Task 3: Document Relay feature contract
+- [x] Checkpoint: Foundation
+- [x] Task 4: Adapt sidebar to Beacon shell
+- [x] Task 5: Adapt site header / topbar
+- [x] Task 6: Rework login page to Beacon split layout
+- [x] Checkpoint: Shell
+- [x] Task 7: Rebuild staff dashboard composition
+- [x] Task 8: Convert staff incident list to Relay table
+- [x] Task 9: Convert staff requests and changes lists
+- [x] Task 10: Convert staff detail pages to Relay detail layout
+- [x] Checkpoint: Staff core
+- [x] Task 11: Convert user my-tickets views
+- [x] Task 12: Convert user detail pages
+- [x] Task 13: Convert users/admin list surface
+- [x] Checkpoint: Requester/admin
+- [x] Task 14: Browser QA and responsive pass
+- [x] Task 15: Build, issue closure notes, and cleanup
+- [x] Checkpoint: Complete

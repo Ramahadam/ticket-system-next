@@ -1,12 +1,22 @@
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { format } from 'date-fns';
+import { DownloadIcon } from 'lucide-react';
 
 import { requireUser } from '@/lib/auth-helpers';
 import { SiteHeader } from '@/components/site-header';
-import { Badge } from '@/components/ui/badge';
-import { StatusPill } from '@/components/status-pill';
-import { SlaBadge } from '@/components/sla-badge';
+import {
+  PriorityBadge,
+  SlaBadge,
+  StatusPill,
+} from '@/components/ticket-primitives';
+import {
+  ActivityCard,
+  DetailPageFrame,
+  DetailPageHeader,
+  DetailRailRow,
+  NotesCard,
+  TextBlock,
+} from '@/components/detail-page-primitives';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -14,9 +24,8 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
 import { IncidentEditForm } from '@/components/incident-edit-form';
-import { PriorityBadge } from '@/components/priority-badge';
+import { buildTicketActivity } from '@/lib/ticket-activity';
 import type { TicketNote } from '@/lib/ticket-helpers';
 import { getIncident } from '@/app/(staff)/incidents/data';
 
@@ -37,120 +46,116 @@ export default async function MyIncidentDetailPage({
   if (!incident) notFound();
 
   const notes = (incident.notes ?? []) as unknown as TicketNote[];
+  const activity = buildTicketActivity({
+    createdAt: incident.createdAt,
+    requester: incident.requester,
+    notes,
+  });
 
   return (
     <>
       <SiteHeader title={`Incident #${incident.id}`} />
-      <div className="flex flex-1 flex-col gap-4 p-4 md:gap-6 md:p-6">
-        <div>
-          <Button
-            variant="outline"
-            size="sm"
-            render={<Link href="/my-tickets?tab=incidents">Back</Link>}
-          />
-        </div>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex flex-wrap items-center gap-2">
-              <span>{incident.summary}</span>
-              <StatusPill status={incident.status} />
+      <div className="mx-auto flex w-full max-w-[1480px] flex-1 flex-col gap-4 p-4 md:gap-5 md:p-6">
+        <DetailPageHeader
+          backHref="/my-tickets?tab=incidents"
+          backLabel="Back to my tickets"
+          id={`#${incident.id}`}
+          title={incident.summary}
+          subtitle={`Opened ${format(incident.createdAt, 'PPp')} by ${incident.requester}`}
+          badges={
+            <>
               <PriorityBadge priority={incident.priority} />
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-2 text-sm">
-            <div>
-              <span className="text-muted-foreground">Description: </span>
-              <span className="whitespace-pre-wrap">{incident.description}</span>
-            </div>
-            <Separator className="my-2" />
-            <dl className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-              <div>
-                <dt className="text-xs text-muted-foreground">Requester</dt>
-                <dd>{incident.requester}</dd>
-              </div>
-              <div>
-                <dt className="text-xs text-muted-foreground">Owner</dt>
-                <dd>{incident.owner ?? 'Unassigned'}</dd>
-              </div>
-              <div>
-                <dt className="text-xs text-muted-foreground">Impact</dt>
-                <dd>{incident.impact}</dd>
-              </div>
-              <div>
-                <dt className="text-xs text-muted-foreground">Created</dt>
-                <dd>{format(incident.createdAt, 'PPp')}</dd>
-              </div>
-              {incident.deadline ? (
-                <div>
-                  <dt className="text-xs text-muted-foreground">Deadline</dt>
-                  <dd className="flex flex-wrap items-center gap-2">
-                    {format(incident.deadline, 'PPp')}
-                    <SlaBadge deadline={incident.deadline} priority={incident.priority} />
-                  </dd>
-                </div>
-              ) : null}
-              {incident.file ? (
-                <div>
-                  <dt className="text-xs text-muted-foreground">Attachment</dt>
-                  <dd>
-                    <a
-                      href={`/api/files/incident/${incident.id}`}
-                      className="text-primary underline"
-                      target="_blank"
-                      rel="noopener"
-                    >
-                      Download
-                    </a>
-                  </dd>
-                </div>
-              ) : null}
-            </dl>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Notes ({notes.length})</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {notes.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No notes yet.</p>
-            ) : (
-              <ul className="flex flex-col gap-3">
-                {notes.map((n) => (
-                  <li
-                    key={String(n.noteId)}
-                    className="border-border rounded-md border p-3 text-sm"
+              <StatusPill status={incident.status} />
+              <SlaBadge deadline={incident.deadline} status={incident.status} />
+            </>
+          }
+          actions={
+            incident.file ? (
+              <Button
+                variant="outline"
+                render={
+                  <a
+                    href={`/api/files/incident/${incident.id}`}
+                    target="_blank"
+                    rel="noopener"
                   >
-                    <div className="text-muted-foreground mb-1 text-xs">
-                      {n.createBy} · {format(new Date(n.createdAt), 'PPp')}
-                    </div>
-                    <div className="whitespace-pre-wrap">{n.noteValue}</div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
+                    <DownloadIcon className="size-4" />
+                    Attachment
+                  </a>
+                }
+              />
+            ) : null
+          }
+        />
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Update</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <IncidentEditForm
-              incidentId={incident.id}
-              userId={session.user.id}
-              isStaff={false}
-              engineers={[]}
-              currentStatus={incident.status}
-              currentOwner={incident.owner}
-              currentPriority={incident.priority}
-              currentImpact={incident.impact}
-            />
-          </CardContent>
-        </Card>
+        <DetailPageFrame
+          rail={
+            <>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Ticket facts</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <dl>
+                    <DetailRailRow label="Status">
+                      <StatusPill status={incident.status} />
+                    </DetailRailRow>
+                    <DetailRailRow label="Priority">
+                      <PriorityBadge priority={incident.priority} />
+                    </DetailRailRow>
+                    <DetailRailRow label="SLA">
+                      <SlaBadge deadline={incident.deadline} status={incident.status} />
+                    </DetailRailRow>
+                    <DetailRailRow label="Owner">
+                      {incident.owner ?? 'Unassigned'}
+                    </DetailRailRow>
+                    <DetailRailRow label="Requester">
+                      {incident.requester}
+                    </DetailRailRow>
+                    <DetailRailRow label="Impact">{incident.impact}</DetailRailRow>
+                    <DetailRailRow label="Created">
+                      {format(incident.createdAt, 'PPp')}
+                    </DetailRailRow>
+                    <DetailRailRow label="Updated" last>
+                      {format(incident.updatedAt, 'PPp')}
+                    </DetailRailRow>
+                  </dl>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Update incident</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <IncidentEditForm
+                    incidentId={incident.id}
+                    userId={session.user.id}
+                    isStaff={false}
+                    engineers={[]}
+                    currentStatus={incident.status}
+                    currentOwner={incident.owner}
+                    currentPriority={incident.priority}
+                    currentImpact={incident.impact}
+                  />
+                </CardContent>
+              </Card>
+            </>
+          }
+        >
+          <Card>
+            <CardHeader>
+              <CardTitle>Incident brief</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <TextBlock title="Description">{incident.description}</TextBlock>
+            </CardContent>
+          </Card>
+
+          <NotesCard notes={notes} />
+
+          <ActivityCard events={activity} />
+        </DetailPageFrame>
       </div>
     </>
   );

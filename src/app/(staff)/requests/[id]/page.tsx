@@ -1,14 +1,24 @@
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { format } from 'date-fns';
+import { DownloadIcon } from 'lucide-react';
 
 import { requireUser } from '@/lib/auth-helpers';
 import { prisma } from '@/lib/prisma';
 import { isStaff } from '@/lib/permissions';
 import { SiteHeader } from '@/components/site-header';
-import { Badge } from '@/components/ui/badge';
-import { StatusPill } from '@/components/status-pill';
-import { SlaBadge } from '@/components/sla-badge';
+import {
+  PriorityBadge,
+  SlaBadge,
+  StatusPill,
+} from '@/components/ticket-primitives';
+import {
+  ActivityCard,
+  DetailPageFrame,
+  DetailPageHeader,
+  DetailRailRow,
+  NotesCard,
+  TextBlock,
+} from '@/components/detail-page-primitives';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -16,10 +26,9 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
 import { ServiceRequestEditForm } from '@/components/service-request-edit-form';
 import { DeleteServiceRequestButton } from '@/components/delete-service-request-button';
-import { PriorityBadge } from '@/components/priority-badge';
+import { buildTicketActivity } from '@/lib/ticket-activity';
 import type { TicketNote } from '@/lib/ticket-helpers';
 import { getServiceRequest } from '../data';
 
@@ -39,7 +48,8 @@ export default async function ServiceRequestDetailPage({
   });
   if (!row) notFound();
 
-  const engineers = isStaff(session.user.role)
+  const staff = isStaff(session.user.role);
+  const engineers = staff
     ? await prisma.user.findMany({
         where: { userrole: { in: ['analyst', 'admin'] }, isActive: true },
         select: { id: true, email: true, firstname: true, lastname: true },
@@ -54,125 +64,121 @@ export default async function ServiceRequestDetailPage({
   }));
 
   const notes = (row.notes ?? []) as unknown as TicketNote[];
+  const activity = buildTicketActivity({
+    createdAt: row.createdAt,
+    requester: row.requester,
+    notes,
+  });
 
   return (
     <>
       <SiteHeader title={`Service request #${row.id}`} />
-      <div className="flex flex-1 flex-col gap-4 p-4 md:gap-6 md:p-6">
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            render={<Link href="/requests">Back</Link>}
-          />
-          {isStaff(session.user.role) ? (
-            <div className="ml-auto">
-              <DeleteServiceRequestButton requestId={row.id} />
-            </div>
-          ) : null}
-        </div>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex flex-wrap items-center gap-2">
-              <span>{row.summary}</span>
-              <StatusPill status={row.status} />
+      <div className="mx-auto flex w-full max-w-[1480px] flex-1 flex-col gap-4 p-4 md:gap-5 md:p-6">
+        <DetailPageHeader
+          backHref="/requests"
+          backLabel="Back to requests"
+          id={`#${row.id}`}
+          title={row.summary}
+          subtitle={`Opened ${format(row.createdAt, 'PPp')} by ${row.requester}`}
+          badges={
+            <>
               <PriorityBadge priority={row.priority} />
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-2 text-sm">
-            <div>
-              <span className="text-muted-foreground">Description: </span>
-              <span className="whitespace-pre-wrap">{row.description}</span>
-            </div>
-            <Separator className="my-2" />
-            <dl className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-              <div>
-                <dt className="text-xs text-muted-foreground">Requester</dt>
-                <dd>{row.requester}</dd>
-              </div>
-              <div>
-                <dt className="text-xs text-muted-foreground">Owner</dt>
-                <dd>{row.owner ?? 'Unassigned'}</dd>
-              </div>
-              <div>
-                <dt className="text-xs text-muted-foreground">Impact</dt>
-                <dd>{row.impact ?? '—'}</dd>
-              </div>
-              <div>
-                <dt className="text-xs text-muted-foreground">Created</dt>
-                <dd>{format(row.createdAt, 'PPp')}</dd>
-              </div>
-              {row.deadline ? (
-                <div>
-                  <dt className="text-xs text-muted-foreground">Deadline</dt>
-                  <dd className="flex flex-wrap items-center gap-2">
-                    {format(row.deadline, 'PPp')}
-                    <SlaBadge deadline={row.deadline} priority={row.priority} />
-                  </dd>
-                </div>
-              ) : null}
+              <StatusPill status={row.status} />
+              <SlaBadge deadline={row.deadline} status={row.status} />
+            </>
+          }
+          actions={
+            <>
               {row.file ? (
-                <div>
-                  <dt className="text-xs text-muted-foreground">Attachment</dt>
-                  <dd>
+                <Button
+                  variant="outline"
+                  render={
                     <a
                       href={`/api/files/service-request/${row.id}`}
-                      className="text-primary underline"
                       target="_blank"
                       rel="noopener"
                     >
-                      Download
+                      <DownloadIcon className="size-4" />
+                      Attachment
                     </a>
-                  </dd>
-                </div>
+                  }
+                />
               ) : null}
-            </dl>
-          </CardContent>
-        </Card>
+              {staff ? <DeleteServiceRequestButton requestId={row.id} /> : null}
+            </>
+          }
+        />
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Notes ({notes.length})</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {notes.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No notes yet.</p>
-            ) : (
-              <ul className="flex flex-col gap-3">
-                {notes.map((n) => (
-                  <li
-                    key={String(n.noteId)}
-                    className="border-border rounded-md border p-3 text-sm"
-                  >
-                    <div className="text-muted-foreground mb-1 text-xs">
-                      {n.createBy} · {format(new Date(n.createdAt), 'PPp')}
-                    </div>
-                    <div className="whitespace-pre-wrap">{n.noteValue}</div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
+        <DetailPageFrame
+          rail={
+            <>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Ticket facts</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <dl>
+                    <DetailRailRow label="Status">
+                      <StatusPill status={row.status} />
+                    </DetailRailRow>
+                    <DetailRailRow label="Priority">
+                      <PriorityBadge priority={row.priority} />
+                    </DetailRailRow>
+                    <DetailRailRow label="SLA">
+                      <SlaBadge deadline={row.deadline} status={row.status} />
+                    </DetailRailRow>
+                    <DetailRailRow label="Owner">
+                      {row.owner ?? 'Unassigned'}
+                    </DetailRailRow>
+                    <DetailRailRow label="Requester">
+                      {row.requester}
+                    </DetailRailRow>
+                    <DetailRailRow label="Impact">
+                      {row.impact ?? 'Not specified'}
+                    </DetailRailRow>
+                    <DetailRailRow label="Created">
+                      {format(row.createdAt, 'PPp')}
+                    </DetailRailRow>
+                    <DetailRailRow label="Updated" last>
+                      {format(row.updatedAt, 'PPp')}
+                    </DetailRailRow>
+                  </dl>
+                </CardContent>
+              </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Update</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ServiceRequestEditForm
-              requestId={row.id}
-              userId={session.user.id}
-              isStaff={isStaff(session.user.role)}
-              engineers={engineerOptions}
-              currentStatus={row.status}
-              currentOwner={row.owner}
-              currentPriority={row.priority}
-              currentImpact={row.impact}
-            />
-          </CardContent>
-        </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Update request</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ServiceRequestEditForm
+                    requestId={row.id}
+                    userId={session.user.id}
+                    isStaff={staff}
+                    engineers={engineerOptions}
+                    currentStatus={row.status}
+                    currentOwner={row.owner}
+                    currentPriority={row.priority}
+                    currentImpact={row.impact}
+                  />
+                </CardContent>
+              </Card>
+            </>
+          }
+        >
+          <Card>
+            <CardHeader>
+              <CardTitle>Request brief</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <TextBlock title="Description">{row.description}</TextBlock>
+            </CardContent>
+          </Card>
+
+          <NotesCard notes={notes} />
+
+          <ActivityCard events={activity} />
+        </DetailPageFrame>
       </div>
     </>
   );

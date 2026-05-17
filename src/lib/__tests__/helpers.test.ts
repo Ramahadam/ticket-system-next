@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { calculateDeadline, mergeNotes } from '../helpers';
+import { calculateDeadline } from '../helpers';
 import { PRIORITY } from '../constants';
 
 describe('calculateDeadline', () => {

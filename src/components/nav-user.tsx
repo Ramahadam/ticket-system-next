@@ -41,20 +41,23 @@ export function NavUser({ user }: { user: NavUserProps }) {
         <DropdownMenu>
           <DropdownMenuTrigger
             render={
-              <SidebarMenuButton size="lg" className="aria-expanded:bg-muted" />
+              <SidebarMenuButton
+                size="lg"
+                className="rounded-lg border border-sidebar-border bg-sidebar-accent/60 aria-expanded:bg-muted group-data-[collapsible=icon]:border-transparent group-data-[collapsible=icon]:bg-transparent"
+              />
             }
           >
-            <Avatar className="size-8 rounded-lg grayscale">
+            <Avatar className="size-8 rounded-full">
               {user.avatar ? (
                 <AvatarImage src={user.avatar} alt={user.name} />
               ) : null}
-              <AvatarFallback className="rounded-lg">
+              <AvatarFallback className="rounded-full bg-primary text-primary-foreground">
                 {user.initials}
               </AvatarFallback>
             </Avatar>
-            <div className="grid flex-1 text-left text-sm leading-tight">
-              <span className="truncate font-medium">{user.name}</span>
-              <span className="truncate text-xs text-foreground/70">
+            <div className="grid flex-1 text-left text-[13px] leading-tight">
+              <span className="truncate font-medium text-foreground">{user.name}</span>
+              <span className="truncate text-[11px] text-muted-foreground">
                 {user.email}
               </span>
             </div>

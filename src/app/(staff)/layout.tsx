@@ -1,9 +1,11 @@
 import type { CSSProperties } from 'react';
 
 import { requireStaff } from '@/lib/auth-helpers';
+import { prisma } from '@/lib/prisma';
 import { sessionToNavUser } from '@/lib/session-display';
 import { AppSidebar } from '@/components/app-sidebar';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
+import { ChangeStatus, TicketStatus } from '@/generated/prisma/client';
 
 export default async function StaffLayout({
   children,
@@ -12,6 +14,17 @@ export default async function StaffLayout({
 }) {
   const session = await requireStaff();
   const navUser = sessionToNavUser(session.user);
+  const [incidents, requests, change] = await prisma.$transaction([
+    prisma.incident.count({
+      where: { status: { notIn: [TicketStatus.fulfilled, TicketStatus.canceled] } },
+    }),
+    prisma.serviceRequest.count({
+      where: { status: { notIn: [TicketStatus.fulfilled, TicketStatus.canceled] } },
+    }),
+    prisma.changeRequest.count({
+      where: { status: { notIn: [ChangeStatus.implemented, ChangeStatus.cancelled] } },
+    }),
+  ]);
 
   return (
     <SidebarProvider
@@ -22,7 +35,12 @@ export default async function StaffLayout({
         } as CSSProperties
       }
     >
-      <AppSidebar user={navUser} role={session.user.role} variant="inset" />
+      <AppSidebar
+        user={navUser}
+        role={session.user.role}
+        counts={{ incidents, requests, change }}
+        variant="inset"
+      />
       <SidebarInset>{children}</SidebarInset>
     </SidebarProvider>
   );

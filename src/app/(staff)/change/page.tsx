@@ -1,16 +1,19 @@
 import Link from 'next/link';
+import { format } from 'date-fns';
 
 import { requireUser } from '@/lib/auth-helpers';
 import { SiteHeader } from '@/components/site-header';
-import { Button } from '@/components/ui/button';
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+  QueueFilterPanel,
+  QueuePageHeader,
+  QueuePagination,
+  QueueResultsCard,
+} from '@/components/queue-list-primitives';
+import {
+  ClassificationBadge,
+  StatusPill,
+} from '@/components/ticket-primitives';
 import { Badge } from '@/components/ui/badge';
-import { StatusPill } from '@/components/status-pill';
 import {
   Table,
   TableBody,
@@ -19,12 +22,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import {
-  CLASSIFICATION_LABELS,
-  CR_FILTER_OPTIONS,
-  CR_SORT_OPTIONS,
-} from '@/lib/constants';
-import { isStaff } from '@/lib/permissions';
+import { parseQueueListParams } from '@/lib/queue-list-params';
 import { getChangeRequestsList } from './data';
 
 type SP = Record<string, string | string[] | undefined>;
@@ -61,146 +59,99 @@ export default async function ChangeRequestsListPage({
   const ctx = { role: session.user.role, email: session.user.email };
   const { data, count, page, pageSize } = await getChangeRequestsList(sp, ctx);
   const totalPages = Math.max(1, Math.ceil(count / pageSize));
-
   const current = spToURLSearchParams(sp);
-  const currentStatus = current.get('status') ?? 'all';
-  const currentSort = current.get('sort') ?? 'createdAt-desc';
+  const parsed = parseQueueListParams(sp);
+  const hrefFor = (patch: Record<string, string | null>) => buildHref(current, patch);
 
   return (
     <>
       <SiteHeader title="Change requests" />
-      <div className="flex flex-1 flex-col gap-4 p-4 md:gap-6 md:p-6">
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex flex-wrap gap-1">
-            <Button
-              size="sm"
-              variant={currentStatus === 'all' ? 'default' : 'outline'}
-              render={
-                <Link href={buildHref(current, { status: null, page: null })}>
-                  All
-                </Link>
-              }
-            />
-            {CR_FILTER_OPTIONS.map((opt) => (
-              <Button
-                key={opt.value}
-                size="sm"
-                variant={currentStatus === opt.value ? 'default' : 'outline'}
-                render={
-                  <Link href={buildHref(current, { status: opt.value, page: null })}>
-                    {opt.label}
-                  </Link>
-                }
-              />
-            ))}
-          </div>
-          <div className="flex flex-wrap gap-1">
-            {CR_SORT_OPTIONS.map((opt) => (
-              <Button
-                key={opt.value}
-                size="sm"
-                variant={currentSort === opt.value ? 'default' : 'outline'}
-                render={
-                  <Link href={buildHref(current, { sort: opt.value, page: null })}>
-                    {opt.label}
-                  </Link>
-                }
-              />
-            ))}
-          </div>
-          <div className="ml-auto">
-            <Button render={<Link href="/change/new">New change request</Link>} />
-          </div>
-        </div>
+      <div className="mx-auto flex w-full max-w-[1480px] flex-1 flex-col gap-4 p-4 md:gap-5 md:p-6">
+        <QueuePageHeader
+          eyebrow="Change queue"
+          title="Change requests"
+          subtitle="Planned modifications under approval."
+          newHref="/change/new"
+          newLabel="New change"
+        />
 
-        <Card>
-          <CardHeader>
-            <CardTitle>
-              {count} {count === 1 ? 'change request' : 'change requests'}
-              {isStaff(session.user.role) ? '' : ' (mine)'}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {data.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No change requests match.</p>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>ID</TableHead>
-                    <TableHead>Summary</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Classification</TableHead>
-                    <TableHead>Requester</TableHead>
-                    <TableHead>Owner</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {data.map((t) => (
-                    <TableRow key={t.id}>
-                      <TableCell className="font-mono">
-                        <Link href={`/change/${t.id}`} className="hover:underline">
-                          #{t.id}
-                        </Link>
-                      </TableCell>
-                      <TableCell>
-                        <Link href={`/change/${t.id}`} className="hover:underline">
-                          {t.summary}
-                        </Link>
-                      </TableCell>
-                      <TableCell>
-                        <StatusPill status={t.status} />
-                      </TableCell>
-                      <TableCell className="capitalize">{t.category}</TableCell>
-                      <TableCell>
-                        {CLASSIFICATION_LABELS[t.classification] ?? t.classification}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {t.requester}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {t.owner ?? 'Unassigned'}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
+        <QueueFilterPanel
+          currentState={parsed.state}
+          currentLevel={parsed.level}
+          currentOwner={parsed.owner}
+          currentSort={parsed.sort}
+          currentSearch={parsed.q}
+          hrefFor={hrefFor}
+          action="/change"
+          levelLabel="Class"
+          levelOptions={[
+            { value: '1', label: 'C1 · Major' },
+            { value: '2', label: 'C2 · Significant' },
+            { value: '3', label: 'C3 · Standard' },
+            { value: '4', label: 'C4 · Normal' },
+          ]}
+          showDeadlineSort={false}
+        />
 
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between">
-            <div className="text-sm text-muted-foreground">
-              Page {page} of {totalPages}
-            </div>
-            <div className="flex gap-2">
-              {page > 1 ? (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  render={
-                    <Link href={buildHref(current, { page: String(page - 1) })}>
-                      Previous
+        <QueueResultsCard
+          title="Queue results"
+          count={count}
+          totalPages={totalPages}
+          page={page}
+          pageSize={pageSize}
+          empty="No change requests match. Try clearing filters or changing the search term."
+        >
+          <Table className="min-w-[980px]">
+            <TableHeader>
+              <TableRow>
+                <TableHead>ID</TableHead>
+                <TableHead>Summary</TableHead>
+                <TableHead>Requester</TableHead>
+                <TableHead>Class</TableHead>
+                <TableHead>Category</TableHead>
+                <TableHead>Owner</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Updated</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {data.map((t) => (
+                <TableRow key={t.id}>
+                  <TableCell className="font-mono">
+                    <Link href={`/change/${t.id}`} className="hover:underline">
+                      #{t.id}
                     </Link>
-                  }
-                />
-              ) : null}
-              {page < totalPages ? (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  render={
-                    <Link href={buildHref(current, { page: String(page + 1) })}>
-                      Next
+                  </TableCell>
+                  <TableCell className="max-w-[360px]">
+                    <Link href={`/change/${t.id}`} className="line-clamp-1 font-medium hover:underline">
+                      {t.summary}
                     </Link>
-                  }
-                />
-              ) : null}
-            </div>
-          </div>
-        )}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">{t.requester}</TableCell>
+                  <TableCell>
+                    <ClassificationBadge classification={t.classification} compact />
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="capitalize">
+                      {t.category}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {t.owner ?? 'Unassigned'}
+                  </TableCell>
+                  <TableCell>
+                    <StatusPill status={t.status} />
+                  </TableCell>
+                  <TableCell className="text-xs text-muted-foreground">
+                    {format(t.updatedAt, 'PP')}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </QueueResultsCard>
+
+        <QueuePagination page={page} totalPages={totalPages} hrefFor={hrefFor} />
       </div>
     </>
   );

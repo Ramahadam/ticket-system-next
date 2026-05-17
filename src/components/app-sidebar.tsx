@@ -10,7 +10,7 @@ import {
   UsersIcon,
   UserIcon,
   InboxIcon,
-  CommandIcon,
+  SearchIcon,
 } from 'lucide-react';
 
 import { NavMain, type NavItem } from '@/components/nav-main';
@@ -20,6 +20,7 @@ import {
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
+  SidebarInput,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
@@ -47,35 +48,68 @@ function buildNav(role: Role): NavItem[] {
   return USER_NAV;
 }
 
+export type AppSidebarCounts = {
+  incidents?: number;
+  requests?: number;
+  change?: number;
+};
+
 export function AppSidebar({
   user,
   role,
+  counts,
   ...props
 }: {
   user: NavUserProps;
   role: Role;
+  counts?: AppSidebarCounts;
 } & React.ComponentProps<typeof Sidebar>) {
-  const items = React.useMemo(() => buildNav(role), [role]);
+  const items = React.useMemo(
+    () =>
+      buildNav(role).map((item) => {
+        if (item.href === '/incidents') return { ...item, count: counts?.incidents };
+        if (item.href === '/requests') return { ...item, count: counts?.requests };
+        if (item.href === '/change') return { ...item, count: counts?.change };
+        return item;
+      }),
+    [counts?.change, counts?.incidents, counts?.requests, role],
+  );
 
   return (
-    <Sidebar collapsible="offcanvas" {...props}>
-      <SidebarHeader>
+    <Sidebar collapsible="icon" {...props}>
+      <SidebarHeader className="gap-3 border-b border-sidebar-border px-3 py-4">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
-              className="data-[slot=sidebar-menu-button]:p-1.5!"
+              className="h-9 data-[slot=sidebar-menu-button]:px-2! hover:bg-sidebar-accent"
               render={<Link href="/" />}
             >
-              <CommandIcon className="size-5!" />
-              <span className="text-base font-semibold">Ticket System</span>
+              <span className="relative flex size-7 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-foreground text-background select-none">
+                <span className="absolute inset-[7px] rounded-full border border-background border-b-transparent border-r-transparent -rotate-45" />
+                <span className="size-1.5 rounded-full bg-background" />
+              </span>
+              <span className="text-[15px] font-semibold tracking-normal text-foreground">
+                Beacon
+              </span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
+        <div className="relative group-data-[collapsible=icon]:hidden">
+          <SearchIcon className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+          <SidebarInput
+            aria-label="Search tickets"
+            placeholder="Search tickets..."
+            className="pl-8 pr-12"
+          />
+          <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 rounded border border-border bg-card px-1.5 font-mono text-[10px] text-muted-foreground">
+            ⌘K
+          </span>
+        </div>
       </SidebarHeader>
-      <SidebarContent>
+      <SidebarContent className="px-1 py-3">
         <NavMain items={items} />
       </SidebarContent>
-      <SidebarFooter>
+      <SidebarFooter className="border-t border-sidebar-border p-3">
         <NavUser user={user} />
       </SidebarFooter>
     </Sidebar>

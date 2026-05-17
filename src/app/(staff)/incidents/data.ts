@@ -1,31 +1,47 @@
 import { prisma } from '@/lib/prisma';
-import { PAGE_SIZE } from '@/lib/constants';
 import { isStaff } from '@/lib/permissions';
 import {
-  parseTicketListParams,
   withOwnershipFilter,
   type OwnershipContext,
 } from '@/lib/ticket-helpers';
-import type { Prisma, TicketStatus } from '@/generated/prisma/client';
+import { parseQueueListParams } from '@/lib/queue-list-params';
+import { TicketStatus, type Prisma } from '@/generated/prisma/client';
 
-const SORTABLE = ['status', 'priority', 'createdAt'] as const;
+const CLOSED_STATUSES: TicketStatus[] = [TicketStatus.fulfilled, TicketStatus.canceled];
 
 export async function getIncidentsList(
   raw: Record<string, string | string[] | undefined>,
   ctx: OwnershipContext,
 ) {
-  const parsed = parseTicketListParams(raw, PAGE_SIZE, { sortable: SORTABLE });
+  const parsed = parseQueueListParams(raw);
 
   const where: Prisma.IncidentWhereInput = {};
-  if (parsed.status) where.status = parsed.status as TicketStatus;
+  if (parsed.state === 'open') where.status = { notIn: CLOSED_STATUSES };
+  if (parsed.state === 'closed') where.status = { in: CLOSED_STATUSES };
+  if (parsed.level) where.priority = parsed.level;
+  if (parsed.owner === 'me') where.owner = ctx.email;
+  if (parsed.owner === 'unassigned') where.owner = null;
+  if (parsed.q) {
+    const id = Number(parsed.q.replace(/^#/, ''));
+    where.OR = [
+      { summary: { contains: parsed.q, mode: 'insensitive' } },
+      ...(Number.isInteger(id) ? [{ id }] : []),
+    ];
+  }
   const scoped = withOwnershipFilter(where, ctx) as Prisma.IncidentWhereInput;
+  const orderBy: Prisma.IncidentOrderByWithRelationInput =
+    parsed.sort === 'created'
+      ? { createdAt: 'desc' }
+      : parsed.sort === 'deadline'
+        ? { deadline: 'asc' }
+        : { priority: 'asc' };
 
   const [data, count] = await prisma.$transaction([
     prisma.incident.findMany({
       where: scoped,
       skip: parsed.skip,
       take: parsed.take,
-      orderBy: parsed.orderBy as Prisma.IncidentOrderByWithRelationInput,
+      orderBy,
     }),
     prisma.incident.count({ where: scoped }),
   ]);

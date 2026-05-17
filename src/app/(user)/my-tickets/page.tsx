@@ -1,11 +1,23 @@
 import Link from 'next/link';
+import type { ReactNode } from 'react';
+import { format, formatDistanceToNow } from 'date-fns';
+import {
+  ArrowLeftIcon,
+  ArrowRightIcon,
+  ChevronRightIcon,
+  InboxIcon,
+  PlusIcon,
+} from 'lucide-react';
 
 import { requireUser } from '@/lib/auth-helpers';
-import { NewTicketModal } from '@/components/new-ticket-modal';
 import { SiteHeader } from '@/components/site-header';
-import { Badge } from '@/components/ui/badge';
-import { StatusPill } from '@/components/status-pill';
-import { SlaBadge } from '@/components/sla-badge';
+import {
+  ClassificationBadge,
+  FilterChip,
+  PriorityBadge,
+  SlaBadge,
+  StatusPill,
+} from '@/components/ticket-primitives';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -13,26 +25,24 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { PAGE_SIZE } from '@/lib/constants';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
-  CLASSIFICATION_LABELS,
-  PAGE_SIZE,
-} from '@/lib/constants';
-import { PriorityBadge } from '@/components/priority-badge';
+  getMyTicketDetailHref,
+  getMyTicketsTabConfig,
+  isRequesterTerminalStatus,
+  MY_TICKETS_TABS,
+  normalizeMyTicketsTab,
+  type MyTicketsTab,
+} from '@/lib/my-tickets-presentation';
 import { getIncidentsList } from '@/app/(staff)/incidents/data';
 import { getServiceRequestsList } from '@/app/(staff)/requests/data';
 import { getChangeRequestsList } from '@/app/(staff)/change/data';
 import type { OwnershipContext } from '@/lib/ticket-helpers';
 
 type SP = Record<string, string | string[] | undefined>;
-type Tab = 'incidents' | 'requests' | 'change';
+type IncidentTicket = Awaited<ReturnType<typeof getIncidentsList>>['data'][number];
+type RequestTicket = Awaited<ReturnType<typeof getServiceRequestsList>>['data'][number];
+type ChangeTicket = Awaited<ReturnType<typeof getChangeRequestsList>>['data'][number];
 
 function buildHref(current: URLSearchParams, patch: Record<string, string | null>) {
   const next = new URLSearchParams(current);
@@ -61,269 +71,262 @@ export default async function MyTicketsPage({
   const session = await requireUser();
   const sp = await searchParams;
   const current = spToURLSearchParams(sp);
-  const tabRaw = current.get('tab') ?? 'incidents';
-  const tab: Tab =
-    tabRaw === 'requests' || tabRaw === 'change' ? tabRaw : 'incidents';
+  const tab = normalizeMyTicketsTab(current.get('tab'));
+  const activeConfig = getMyTicketsTabConfig(tab);
 
   const ctx: OwnershipContext = {
     role: session.user.role,
     email: session.user.email,
   };
 
-  const tabs: { value: Tab; label: string }[] = [
-    { value: 'incidents', label: 'Incidents' },
-    { value: 'requests', label: 'Service Requests' },
-    { value: 'change', label: 'Change Requests' },
-  ];
+  const [incidents, requests, changes] = await Promise.all([
+    getIncidentsList(sp, ctx),
+    getServiceRequestsList(sp, ctx),
+    getChangeRequestsList(sp, ctx),
+  ]);
+
+  const counts: Record<MyTicketsTab, number> = {
+    incidents: incidents.count,
+    requests: requests.count,
+    change: changes.count,
+  };
+  const active =
+    tab === 'incidents' ? incidents : tab === 'requests' ? requests : changes;
+  const total = Math.max(1, Math.ceil(active.count / PAGE_SIZE));
 
   return (
     <>
-      <SiteHeader title="My Tickets" />
-      <div className="flex flex-1 flex-col gap-4 p-4 md:gap-6 md:p-6">
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex flex-wrap gap-1">
-            {tabs.map((t) => (
-              <Button
-                key={t.value}
-                size="sm"
-                variant={tab === t.value ? 'default' : 'outline'}
+      <SiteHeader title="My tickets" />
+      <div className="mx-auto flex w-full max-w-[1100px] flex-1 flex-col gap-4 p-4 md:gap-5 md:p-6">
+        <div className="flex flex-col gap-3 border-b border-[color:var(--relay-border-soft)] pb-4 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <h1 className="text-xl font-semibold text-foreground md:text-2xl">
+              My tickets
+            </h1>
+            <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+              Everything you have raised with IT.
+            </p>
+          </div>
+          <Button
+            render={
+              <Link href={activeConfig.newHref}>
+                <PlusIcon className="size-4" />
+                New ticket
+              </Link>
+            }
+          />
+        </div>
+
+        <Card>
+          <CardContent className="flex flex-wrap gap-1.5 pt-4">
+            {MY_TICKETS_TABS.map((item) => (
+              <FilterChip
+                key={item.value}
+                active={tab === item.value}
                 render={
-                  <Link href={buildHref(current, { tab: t.value, page: null })}>
-                    {t.label}
+                  <Link
+                    href={buildHref(current, { tab: item.value, page: null })}
+                    className="gap-2"
+                  >
+                    <span>{item.label}</span>
+                    <span className="rounded-full bg-[color:var(--relay-bg-soft)] px-2 py-0.5 text-xs">
+                      {counts[item.value]}
+                    </span>
                   </Link>
                 }
               />
             ))}
-          </div>
-          <div className="ml-auto">
-            <NewTicketModal isStaff={false} />
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
-        {tab === 'incidents' ? (
-          <IncidentsSection ctx={ctx} sp={sp} current={current} />
-        ) : tab === 'requests' ? (
-          <RequestsSection ctx={ctx} sp={sp} current={current} />
-        ) : (
-          <ChangeSection ctx={ctx} sp={sp} current={current} />
-        )}
+        <Card>
+          <CardHeader className="flex-row items-center justify-between">
+            <div>
+              <CardTitle>{activeConfig.label}</CardTitle>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {active.count} {active.count === 1 ? 'ticket' : 'tickets'} · Page{' '}
+                {active.page} of {total}
+              </p>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {active.count === 0 ? (
+              <EmptyTicketsState config={activeConfig} />
+            ) : tab === 'incidents' ? (
+              <TicketCardList>
+                {incidents.data.map((ticket) => (
+                  <IncidentTicketCard key={ticket.id} ticket={ticket} />
+                ))}
+              </TicketCardList>
+            ) : tab === 'requests' ? (
+              <TicketCardList>
+                {requests.data.map((ticket) => (
+                  <RequestTicketCard key={ticket.id} ticket={ticket} />
+                ))}
+              </TicketCardList>
+            ) : (
+              <TicketCardList>
+                {changes.data.map((ticket) => (
+                  <ChangeTicketCard key={ticket.id} ticket={ticket} />
+                ))}
+              </TicketCardList>
+            )}
+          </CardContent>
+        </Card>
+
+        <Pagination page={active.page} total={total} current={current} />
       </div>
     </>
   );
 }
 
-async function IncidentsSection({
-  ctx,
-  sp,
-  current,
-}: {
-  ctx: OwnershipContext;
-  sp: SP;
-  current: URLSearchParams;
-}) {
-  const { data, count, page } = await getIncidentsList(sp, ctx);
-  const total = Math.max(1, Math.ceil(count / PAGE_SIZE));
+function TicketCardList({ children }: { children: ReactNode }) {
+  return <div className="flex flex-col gap-3">{children}</div>;
+}
+
+function IncidentTicketCard({ ticket }: { ticket: IncidentTicket }) {
   return (
-    <>
-      <Card>
-        <CardHeader>
-          <CardTitle>
-            {count} {count === 1 ? 'incident' : 'incidents'}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {data.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No incidents yet.</p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>ID</TableHead>
-                  <TableHead>Summary</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Priority</TableHead>
-                  <TableHead>SLA</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {data.map((t) => (
-                  <TableRow key={t.id}>
-                    <TableCell className="font-mono">
-                      <Link
-                        href={`/my-tickets/incidents/${t.id}`}
-                        className="hover:underline"
-                      >
-                        #{t.id}
-                      </Link>
-                    </TableCell>
-                    <TableCell>
-                      <Link
-                        href={`/my-tickets/incidents/${t.id}`}
-                        className="hover:underline"
-                      >
-                        {t.summary}
-                      </Link>
-                    </TableCell>
-                    <TableCell>
-                      <StatusPill status={t.status} />
-                    </TableCell>
-                    <TableCell>
-                      <PriorityBadge priority={t.priority} />
-                    </TableCell>
-                    <TableCell>
-                      <SlaBadge deadline={t.deadline} priority={t.priority} />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
-      <Pagination page={page} total={total} current={current} />
-    </>
+    <RequesterTicketCard
+      href={getMyTicketDetailHref('incidents', ticket.id)}
+      id={`#${ticket.id}`}
+      summary={ticket.summary}
+      status={<StatusPill status={ticket.status} />}
+      badge={<PriorityBadge priority={ticket.priority} compact />}
+      createdAt={ticket.createdAt}
+      updatedAt={ticket.updatedAt}
+      owner={ticket.owner}
+      side={
+        isRequesterTerminalStatus(ticket.status) ? null : (
+          <SlaBadge deadline={ticket.deadline} status={ticket.status} />
+        )
+      }
+    />
   );
 }
 
-async function RequestsSection({
-  ctx,
-  sp,
-  current,
-}: {
-  ctx: OwnershipContext;
-  sp: SP;
-  current: URLSearchParams;
-}) {
-  const { data, count, page } = await getServiceRequestsList(sp, ctx);
-  const total = Math.max(1, Math.ceil(count / PAGE_SIZE));
+function RequestTicketCard({ ticket }: { ticket: RequestTicket }) {
   return (
-    <>
-      <Card>
-        <CardHeader>
-          <CardTitle>
-            {count} {count === 1 ? 'service request' : 'service requests'}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {data.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No service requests yet.</p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>ID</TableHead>
-                  <TableHead>Summary</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Priority</TableHead>
-                  <TableHead>SLA</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {data.map((t) => (
-                  <TableRow key={t.id}>
-                    <TableCell className="font-mono">
-                      <Link
-                        href={`/my-tickets/requests/${t.id}`}
-                        className="hover:underline"
-                      >
-                        #{t.id}
-                      </Link>
-                    </TableCell>
-                    <TableCell>
-                      <Link
-                        href={`/my-tickets/requests/${t.id}`}
-                        className="hover:underline"
-                      >
-                        {t.summary}
-                      </Link>
-                    </TableCell>
-                    <TableCell>
-                      <StatusPill status={t.status} />
-                    </TableCell>
-                    <TableCell>
-                      <PriorityBadge priority={t.priority} />
-                    </TableCell>
-                    <TableCell>
-                      <SlaBadge deadline={t.deadline} priority={t.priority} />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
-      <Pagination page={page} total={total} current={current} />
-    </>
+    <RequesterTicketCard
+      href={getMyTicketDetailHref('requests', ticket.id)}
+      id={`#${ticket.id}`}
+      summary={ticket.summary}
+      status={<StatusPill status={ticket.status} />}
+      badge={<PriorityBadge priority={ticket.priority} compact />}
+      createdAt={ticket.createdAt}
+      updatedAt={ticket.updatedAt}
+      owner={ticket.owner}
+      side={
+        isRequesterTerminalStatus(ticket.status) ? null : (
+          <SlaBadge deadline={ticket.deadline} status={ticket.status} />
+        )
+      }
+    />
   );
 }
 
-async function ChangeSection({
-  ctx,
-  sp,
-  current,
-}: {
-  ctx: OwnershipContext;
-  sp: SP;
-  current: URLSearchParams;
-}) {
-  const { data, count, page } = await getChangeRequestsList(sp, ctx);
-  const total = Math.max(1, Math.ceil(count / PAGE_SIZE));
+function ChangeTicketCard({ ticket }: { ticket: ChangeTicket }) {
   return (
-    <>
-      <Card>
-        <CardHeader>
-          <CardTitle>
-            {count} {count === 1 ? 'change request' : 'change requests'}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {data.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No change requests yet.</p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>ID</TableHead>
-                  <TableHead>Summary</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Classification</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {data.map((t) => (
-                  <TableRow key={t.id}>
-                    <TableCell className="font-mono">
-                      <Link
-                        href={`/my-tickets/change/${t.id}`}
-                        className="hover:underline"
-                      >
-                        #{t.id}
-                      </Link>
-                    </TableCell>
-                    <TableCell>
-                      <Link
-                        href={`/my-tickets/change/${t.id}`}
-                        className="hover:underline"
-                      >
-                        {t.summary}
-                      </Link>
-                    </TableCell>
-                    <TableCell>
-                      <StatusPill status={t.status} />
-                    </TableCell>
-                    <TableCell>
-                      {CLASSIFICATION_LABELS[t.classification] ?? t.classification}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
+    <RequesterTicketCard
+      href={getMyTicketDetailHref('change', ticket.id)}
+      id={`#${ticket.id}`}
+      summary={ticket.summary}
+      status={<StatusPill status={ticket.status} />}
+      badge={<ClassificationBadge classification={ticket.classification} />}
+      createdAt={ticket.createdAt}
+      updatedAt={ticket.updatedAt}
+      owner={ticket.owner}
+      side={
+        <span className="text-xs font-medium capitalize text-muted-foreground">
+          {ticket.category}
+        </span>
+      }
+    />
+  );
+}
+
+function RequesterTicketCard({
+  href,
+  id,
+  summary,
+  status,
+  badge,
+  createdAt,
+  updatedAt,
+  owner,
+  side,
+}: {
+  href: string;
+  id: string;
+  summary: string;
+  status: ReactNode;
+  badge: ReactNode;
+  createdAt: Date;
+  updatedAt: Date;
+  owner: string | null;
+  side: ReactNode;
+}) {
+  return (
+    <Link href={href} className="group block">
+      <Card className="transition group-hover:border-[color:var(--relay-border-strong)]">
+        <CardContent className="flex gap-4 p-4">
+          <div className="min-w-0 flex-1">
+            <div className="mb-2 flex flex-wrap items-center gap-2">
+              <span className="font-mono text-xs font-semibold text-muted-foreground">
+                {id}
+              </span>
+              {status}
+              {badge}
+            </div>
+            <h2 className="line-clamp-2 text-sm font-semibold text-foreground">
+              {summary}
+            </h2>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Raised {formatDistanceToNow(createdAt, { addSuffix: true })}
+              {owner ? (
+                <>
+                  {' '}
+                  · being looked at by{' '}
+                  <span className="font-medium text-foreground">{owner}</span>
+                </>
+              ) : (
+                ' · waiting to be assigned'
+              )}
+              {' '}· updated {format(updatedAt, 'PP')}
+            </p>
+          </div>
+          <div className="flex shrink-0 flex-col items-end justify-between gap-2">
+            {side}
+            <ChevronRightIcon className="size-4 text-muted-foreground transition group-hover:translate-x-0.5" />
+          </div>
         </CardContent>
       </Card>
-      <Pagination page={page} total={total} current={current} />
-    </>
+    </Link>
+  );
+}
+
+function EmptyTicketsState({
+  config,
+}: {
+  config: ReturnType<typeof getMyTicketsTabConfig>;
+}) {
+  return (
+    <div className="flex flex-col items-center justify-center gap-3 py-14 text-center">
+      <span className="flex size-12 items-center justify-center rounded-full bg-[color:var(--relay-bg-soft)] text-muted-foreground">
+        <InboxIcon className="size-5" />
+      </span>
+      <div>
+        <h2 className="text-sm font-semibold text-foreground">{config.emptyTitle}</h2>
+        <p className="mt-1 max-w-md text-sm text-muted-foreground">{config.emptyHint}</p>
+      </div>
+      <Button
+        render={
+          <Link href={config.newHref}>
+            <PlusIcon className="size-4" />
+            Raise a ticket
+          </Link>
+        }
+      />
+    </div>
   );
 }
 
@@ -349,6 +352,7 @@ function Pagination({
             size="sm"
             render={
               <Link href={buildHref(current, { page: String(page - 1) })}>
+                <ArrowLeftIcon className="size-3.5" />
                 Previous
               </Link>
             }
@@ -359,7 +363,10 @@ function Pagination({
             variant="outline"
             size="sm"
             render={
-              <Link href={buildHref(current, { page: String(page + 1) })}>Next</Link>
+              <Link href={buildHref(current, { page: String(page + 1) })}>
+                Next
+                <ArrowRightIcon className="size-3.5" />
+              </Link>
             }
           />
         ) : null}

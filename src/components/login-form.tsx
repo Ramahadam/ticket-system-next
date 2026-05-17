@@ -64,51 +64,66 @@ export function LoginForm({
       {...props}
     >
       <FieldGroup>
-        <div className="flex flex-col items-center gap-1 text-center">
-          <h1 className="text-2xl font-bold">Login to your account</h1>
-          <p className="text-sm text-balance text-muted-foreground">
-            Enter your email below to login to your account
+        <div className="mb-2 flex flex-col gap-1">
+          <h1 className="text-[26px] font-semibold leading-tight tracking-normal text-foreground">
+            Welcome back
+          </h1>
+          <p className="text-sm leading-6 tracking-normal text-muted-foreground">
+            Sign in to manage your IT tickets.
           </p>
         </div>
+
         <Field data-invalid={emailInvalid || undefined}>
-          <FieldLabel htmlFor="email">Email</FieldLabel>
+          <FieldLabel htmlFor="email" className="text-xs font-medium tracking-normal text-foreground">
+            Work email
+          </FieldLabel>
           <Input
             id="email"
             type="email"
             autoComplete="email"
             aria-invalid={emailInvalid || undefined}
-            placeholder="m@example.com"
+            placeholder="you@example.com"
+            className="h-10 rounded-lg border-border bg-card px-3 text-[13.5px] tracking-normal"
             {...register('email')}
           />
           {errors.email ? (
-            <FieldDescription role="alert" className="text-destructive">
+            <FieldDescription role="alert" className="text-xs text-destructive">
               {errors.email.message}
             </FieldDescription>
           ) : null}
         </Field>
+
         <Field data-invalid={passwordInvalid || undefined}>
-          <FieldLabel htmlFor="password">Password</FieldLabel>
+          <FieldLabel htmlFor="password" className="text-xs font-medium tracking-normal text-foreground">
+            Password
+          </FieldLabel>
           <Input
             id="password"
             type="password"
             autoComplete="current-password"
             aria-invalid={passwordInvalid || undefined}
+            className="h-10 rounded-lg border-border bg-card px-3 text-[13.5px] tracking-normal"
             {...register('password')}
           />
           {errors.password ? (
-            <FieldDescription role="alert" className="text-destructive">
+            <FieldDescription role="alert" className="text-xs text-destructive">
               {errors.password.message}
             </FieldDescription>
           ) : null}
         </Field>
+
         {rootError ? (
-          <FieldDescription role="alert" className="text-destructive">
+          <FieldDescription
+            role="alert"
+            className="rounded-lg border border-[color:var(--relay-bad)] bg-[color:var(--relay-bad-soft)] px-3 py-2 text-xs text-[color:var(--relay-bad)]"
+          >
             {rootError}
           </FieldDescription>
         ) : null}
-        <Field>
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? 'Signing in…' : 'Login'}
+
+        <Field className="mt-2">
+          <Button type="submit" disabled={isSubmitting} className="w-full">
+            {isSubmitting ? 'Signing in…' : 'Sign in'}
           </Button>
         </Field>
       </FieldGroup>

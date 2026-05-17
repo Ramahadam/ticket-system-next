@@ -1,17 +1,19 @@
 import Link from 'next/link';
+import { format } from 'date-fns';
 
 import { requireUser } from '@/lib/auth-helpers';
 import { SiteHeader } from '@/components/site-header';
-import { Button } from '@/components/ui/button';
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { StatusPill } from '@/components/status-pill';
-import { SlaBadge } from '@/components/sla-badge';
+  QueueFilterPanel,
+  QueuePageHeader,
+  QueuePagination,
+  QueueResultsCard,
+} from '@/components/queue-list-primitives';
+import {
+  PriorityBadge,
+  SlaBadge,
+  StatusPill,
+} from '@/components/ticket-primitives';
 import {
   Table,
   TableBody,
@@ -20,12 +22,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import {
-  TICKET_FILTER_OPTIONS,
-  TICKET_SORT_OPTIONS,
-} from '@/lib/constants';
-import { PriorityBadge } from '@/components/priority-badge';
-import { isStaff } from '@/lib/permissions';
+import { parseQueueListParams } from '@/lib/queue-list-params';
 import { getServiceRequestsList } from './data';
 
 type SP = Record<string, string | string[] | undefined>;
@@ -62,146 +59,96 @@ export default async function ServiceRequestsListPage({
   const ctx = { role: session.user.role, email: session.user.email };
   const { data, count, page, pageSize } = await getServiceRequestsList(sp, ctx);
   const totalPages = Math.max(1, Math.ceil(count / pageSize));
-
   const current = spToURLSearchParams(sp);
-  const currentStatus = current.get('status') ?? 'all';
-  const currentSort = current.get('sort') ?? 'createdAt-desc';
+  const parsed = parseQueueListParams(sp);
+  const hrefFor = (patch: Record<string, string | null>) => buildHref(current, patch);
 
   return (
     <>
       <SiteHeader title="Service requests" />
-      <div className="flex flex-1 flex-col gap-4 p-4 md:gap-6 md:p-6">
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex flex-wrap gap-1">
-            <Button
-              size="sm"
-              variant={currentStatus === 'all' ? 'default' : 'outline'}
-              render={
-                <Link href={buildHref(current, { status: null, page: null })}>
-                  All
-                </Link>
-              }
-            />
-            {TICKET_FILTER_OPTIONS.map((opt) => (
-              <Button
-                key={opt.value}
-                size="sm"
-                variant={currentStatus === opt.value ? 'default' : 'outline'}
-                render={
-                  <Link href={buildHref(current, { status: opt.value, page: null })}>
-                    {opt.label}
-                  </Link>
-                }
-              />
-            ))}
-          </div>
-          <div className="flex flex-wrap gap-1">
-            {TICKET_SORT_OPTIONS.map((opt) => (
-              <Button
-                key={opt.value}
-                size="sm"
-                variant={currentSort === opt.value ? 'default' : 'outline'}
-                render={
-                  <Link href={buildHref(current, { sort: opt.value, page: null })}>
-                    {opt.label}
-                  </Link>
-                }
-              />
-            ))}
-          </div>
-          <div className="ml-auto">
-            <Button render={<Link href="/requests/new">New service request</Link>} />
-          </div>
-        </div>
+      <div className="mx-auto flex w-full max-w-[1480px] flex-1 flex-col gap-4 p-4 md:gap-5 md:p-6">
+        <QueuePageHeader
+          eyebrow="Request queue"
+          title="Service requests"
+          subtitle="New resources, access, hardware."
+          newHref="/requests/new"
+          newLabel="New service request"
+        />
 
-        <Card>
-          <CardHeader>
-            <CardTitle>
-              {count} {count === 1 ? 'service request' : 'service requests'}
-              {isStaff(session.user.role) ? '' : ' (mine)'}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {data.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No service requests match.</p>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>ID</TableHead>
-                    <TableHead>Summary</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Priority</TableHead>
-                    <TableHead>Requester</TableHead>
-                    <TableHead>Owner</TableHead>
-                    <TableHead>SLA</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {data.map((t) => (
-                    <TableRow key={t.id}>
-                      <TableCell className="font-mono">
-                        <Link href={`/requests/${t.id}`} className="hover:underline">
-                          #{t.id}
-                        </Link>
-                      </TableCell>
-                      <TableCell>
-                        <Link href={`/requests/${t.id}`} className="hover:underline">
-                          {t.summary}
-                        </Link>
-                      </TableCell>
-                      <TableCell>
-                        <StatusPill status={t.status} />
-                      </TableCell>
-                      <TableCell><PriorityBadge priority={t.priority} /></TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {t.requester}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {t.owner ?? 'Unassigned'}
-                      </TableCell>
-                      <TableCell>
-                        <SlaBadge deadline={t.deadline} priority={t.priority} />
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
+        <QueueFilterPanel
+          currentState={parsed.state}
+          currentLevel={parsed.level}
+          currentOwner={parsed.owner}
+          currentSort={parsed.sort}
+          currentSearch={parsed.q}
+          hrefFor={hrefFor}
+          action="/requests"
+          levelLabel="Priority"
+          levelOptions={[
+            { value: '1', label: 'P1 · Critical' },
+            { value: '2', label: 'P2 · High' },
+            { value: '3', label: 'P3 · Normal' },
+            { value: '4', label: 'P4 · Low' },
+          ]}
+        />
 
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between">
-            <div className="text-sm text-muted-foreground">
-              Page {page} of {totalPages}
-            </div>
-            <div className="flex gap-2">
-              {page > 1 ? (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  render={
-                    <Link href={buildHref(current, { page: String(page - 1) })}>
-                      Previous
+        <QueueResultsCard
+          title="Queue results"
+          count={count}
+          totalPages={totalPages}
+          page={page}
+          pageSize={pageSize}
+          empty="No service requests match. Try clearing filters or changing the search term."
+        >
+          <Table className="min-w-[980px]">
+            <TableHeader>
+              <TableRow>
+                <TableHead>ID</TableHead>
+                <TableHead>Summary</TableHead>
+                <TableHead>Requester</TableHead>
+                <TableHead>Priority</TableHead>
+                <TableHead>SLA</TableHead>
+                <TableHead>Owner</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Updated</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {data.map((t) => (
+                <TableRow key={t.id}>
+                  <TableCell className="font-mono">
+                    <Link href={`/requests/${t.id}`} className="hover:underline">
+                      #{t.id}
                     </Link>
-                  }
-                />
-              ) : null}
-              {page < totalPages ? (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  render={
-                    <Link href={buildHref(current, { page: String(page + 1) })}>
-                      Next
+                  </TableCell>
+                  <TableCell className="max-w-[360px]">
+                    <Link href={`/requests/${t.id}`} className="line-clamp-1 font-medium hover:underline">
+                      {t.summary}
                     </Link>
-                  }
-                />
-              ) : null}
-            </div>
-          </div>
-        )}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">{t.requester}</TableCell>
+                  <TableCell>
+                    <PriorityBadge priority={t.priority} compact />
+                  </TableCell>
+                  <TableCell>
+                    <SlaBadge deadline={t.deadline} status={t.status} />
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {t.owner ?? 'Unassigned'}
+                  </TableCell>
+                  <TableCell>
+                    <StatusPill status={t.status} />
+                  </TableCell>
+                  <TableCell className="text-xs text-muted-foreground">
+                    {format(t.updatedAt, 'PP')}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </QueueResultsCard>
+
+        <QueuePagination page={page} totalPages={totalPages} hrefFor={hrefFor} />
       </div>
     </>
   );

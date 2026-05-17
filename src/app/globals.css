@@ -7,9 +7,9 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-geist-sans);
+  --font-sans: var(--font-sans-stack);
+  --font-mono: var(--font-mono-stack);
+  --font-heading: var(--font-sans-stack);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -39,127 +39,161 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
+  --radius-sm: var(--relay-radius-sm);
+  --radius-md: calc(var(--relay-radius-sm) + 2px);
+  --radius-lg: var(--relay-radius);
+  --radius-xl: calc(var(--relay-radius) + 2px);
+  --radius-2xl: calc(var(--relay-radius) + 4px);
+  --radius-3xl: calc(var(--relay-radius) + 8px);
+  --radius-4xl: 9999px;
 }
 
 :root {
-  /* Relay design tokens — light */
-  --background:            oklch(0.992 0.002 255);
-  --foreground:            oklch(0.18  0.02  260);
-  --card:                  oklch(1     0     0);
-  --card-foreground:       oklch(0.18  0.02  260);
-  --popover:               oklch(1     0     0);
-  --popover-foreground:    oklch(0.18  0.02  260);
-  --primary:               oklch(0.52  0.21  265);
-  --primary-foreground:    #ffffff;
-  --secondary:             oklch(0.985 0.003 255);
-  --secondary-foreground:  oklch(0.32  0.015 260);
-  --muted:                 oklch(0.985 0.003 255);
-  --muted-foreground:      oklch(0.52  0.012 260);
-  --accent:                oklch(0.965 0.004 255);
-  --accent-foreground:     oklch(0.18  0.02  260);
-  --destructive:           oklch(0.58  0.22  25);
-  --border:                oklch(0.92  0.004 255);
-  --input:                 oklch(0.92  0.004 255);
-  --ring:                  oklch(0.94  0.04  265);
-  --radius:                0.625rem;
+  --font-sans-stack: "Geist", ui-sans-serif, system-ui, -apple-system,
+    BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono-stack: "JetBrains Mono", "Geist Mono", ui-monospace, SFMono-Regular,
+    Menlo, Monaco, Consolas, monospace;
 
-  /* Relay semantic tokens (used by custom components) */
-  --relay-accent-soft:     oklch(0.94  0.04  265);
-  --relay-accent-text:     oklch(0.42  0.21  265);
-  --relay-text-soft:       oklch(0.32  0.015 260);
-  --relay-text-faint:      oklch(0.68  0.008 260);
-  --relay-good:            oklch(0.6   0.14  155);
-  --relay-good-soft:       oklch(0.94  0.04  155);
-  --relay-warn:            oklch(0.72  0.16  75);
-  --relay-warn-soft:       oklch(0.95  0.06  75);
-  --relay-bad:             oklch(0.6   0.22  25);
-  --relay-bad-soft:        oklch(0.95  0.04  25);
-  --relay-p1:              oklch(0.58  0.22  25);
-  --relay-p1-soft:         oklch(0.95  0.04  25);
-  --relay-p2:              oklch(0.66  0.19  55);
-  --relay-p2-soft:         oklch(0.95  0.05  70);
-  --relay-p3:              oklch(0.62  0.15  220);
-  --relay-p3-soft:         oklch(0.95  0.04  220);
-  --relay-p4:              oklch(0.62  0.025 260);
-  --relay-p4-soft:         oklch(0.95  0.005 260);
+  --relay-bg: oklch(0.992 0.002 255);
+  --relay-bg-soft: oklch(0.975 0.003 255);
+  --relay-surface: #ffffff;
+  --relay-surface-2: oklch(0.985 0.003 255);
+  --relay-hover: oklch(0.965 0.004 255);
+  --relay-border: oklch(0.92 0.004 255);
+  --relay-border-soft: oklch(0.945 0.004 255);
+  --relay-border-strong: oklch(0.86 0.005 255);
+  --relay-text: oklch(0.18 0.02 260);
+  --relay-text-soft: oklch(0.32 0.015 260);
+  --relay-text-muted: oklch(0.52 0.012 260);
+  --relay-text-faint: oklch(0.68 0.008 260);
+  --relay-accent: oklch(0.52 0.21 265);
+  --relay-accent-soft: oklch(0.94 0.04 265);
+  --relay-accent-text: oklch(0.42 0.21 265);
+  --relay-accent-strong: oklch(0.46 0.22 265);
+  --relay-on-accent: #ffffff;
 
-  --chart-1: oklch(0.52 0.21 265);
-  --chart-2: oklch(0.62 0.15 220);
-  --chart-3: oklch(0.60 0.14 155);
-  --chart-4: oklch(0.66 0.19 55);
-  --chart-5: oklch(0.58 0.22 25);
+  --relay-p1: oklch(0.58 0.22 25);
+  --relay-p1-soft: oklch(0.95 0.04 25);
+  --relay-p2: oklch(0.66 0.19 55);
+  --relay-p2-soft: oklch(0.95 0.05 70);
+  --relay-p3: oklch(0.62 0.15 220);
+  --relay-p3-soft: oklch(0.95 0.04 220);
+  --relay-p4: oklch(0.62 0.025 260);
+  --relay-p4-soft: oklch(0.95 0.005 260);
+  --relay-good: oklch(0.6 0.14 155);
+  --relay-good-soft: oklch(0.94 0.04 155);
+  --relay-warn: oklch(0.72 0.16 75);
+  --relay-warn-soft: oklch(0.95 0.06 75);
+  --relay-bad: oklch(0.6 0.22 25);
+  --relay-bad-soft: oklch(0.95 0.04 25);
 
-  --sidebar:                   oklch(0.992 0.002 255);
-  --sidebar-foreground:        oklch(0.18  0.02  260);
-  --sidebar-primary:           oklch(0.52  0.21  265);
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent:            oklch(0.965 0.004 255);
-  --sidebar-accent-foreground: oklch(0.18  0.02  260);
-  --sidebar-border:            oklch(0.92  0.004 255);
-  --sidebar-ring:              oklch(0.94  0.04  265);
+  --relay-sidebar-w: 240px;
+  --relay-sidebar-w-collapsed: 72px;
+  --relay-topbar-h: 56px;
+  --relay-row-h: 52px;
+  --relay-pad-x: 16px;
+  --relay-pad-y: 14px;
+  --relay-radius: 10px;
+  --relay-radius-sm: 6px;
+  --relay-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --relay-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 4px 12px rgba(15, 23, 42, 0.04);
+  --relay-shadow-lg: 0 8px 24px rgba(15, 23, 42, 0.08), 0 2px 6px rgba(15, 23, 42, 0.04);
+
+  --background: var(--relay-bg);
+  --foreground: var(--relay-text);
+  --card: var(--relay-surface);
+  --card-foreground: var(--relay-text);
+  --popover: #ffffff;
+  --popover-foreground: var(--relay-text);
+  --primary: var(--relay-accent);
+  --primary-foreground: var(--relay-on-accent);
+  --secondary: var(--relay-surface-2);
+  --secondary-foreground: var(--relay-text);
+  --muted: var(--relay-bg-soft);
+  --muted-foreground: var(--relay-text-muted);
+  --accent: var(--relay-accent-soft);
+  --accent-foreground: var(--relay-accent-text);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: var(--relay-border);
+  --input: var(--relay-border);
+  --ring: var(--relay-accent);
+  --radius: var(--relay-radius);
+
+  --chart-1: var(--relay-accent);
+  --chart-2: var(--relay-good);
+  --chart-3: var(--relay-warn);
+  --chart-4: var(--relay-bad);
+  --chart-5: var(--relay-text-muted);
+
+  --sidebar: var(--relay-surface);
+  --sidebar-foreground: var(--relay-text-soft);
+  --sidebar-primary: var(--relay-accent);
+  --sidebar-primary-foreground: var(--relay-on-accent);
+  --sidebar-accent: var(--relay-surface-2);
+  --sidebar-accent-foreground: var(--relay-text);
+  --sidebar-border: var(--relay-border);
+  --sidebar-ring: var(--relay-accent);
 }
 
 .dark {
-  /* Relay design tokens — dark */
-  --background:            oklch(0.16  0.012 260);
-  --foreground:            oklch(0.96  0.005 260);
-  --card:                  oklch(0.21  0.013 260);
-  --card-foreground:       oklch(0.96  0.005 260);
-  --popover:               oklch(0.21  0.013 260);
-  --popover-foreground:    oklch(0.96  0.005 260);
-  --primary:               oklch(0.7   0.18  265);
-  --primary-foreground:    #ffffff;
-  --secondary:             oklch(0.235 0.013 260);
-  --secondary-foreground:  oklch(0.82  0.008 260);
-  --muted:                 oklch(0.235 0.013 260);
-  --muted-foreground:      oklch(0.66  0.01  260);
-  --accent:                oklch(0.26  0.014 260);
-  --accent-foreground:     oklch(0.96  0.005 260);
-  --destructive:           oklch(0.6   0.22  25);
-  --border:                oklch(0.3   0.012 260);
-  --input:                 oklch(0.3   0.012 260);
-  --ring:                  oklch(0.32  0.08  265);
+  --relay-bg: oklch(0.16 0.012 260);
+  --relay-bg-soft: oklch(0.19 0.012 260);
+  --relay-surface: oklch(0.21 0.013 260);
+  --relay-surface-2: oklch(0.235 0.013 260);
+  --relay-hover: oklch(0.26 0.014 260);
+  --relay-border: oklch(0.3 0.012 260);
+  --relay-border-soft: oklch(0.26 0.012 260);
+  --relay-border-strong: oklch(0.36 0.014 260);
+  --relay-text: oklch(0.96 0.005 260);
+  --relay-text-soft: oklch(0.82 0.008 260);
+  --relay-text-muted: oklch(0.66 0.01 260);
+  --relay-text-faint: oklch(0.52 0.012 260);
+  --relay-accent: oklch(0.7 0.18 265);
+  --relay-accent-soft: oklch(0.32 0.08 265);
+  --relay-accent-text: oklch(0.82 0.16 265);
+  --relay-accent-strong: oklch(0.78 0.18 265);
+  --relay-p1-soft: oklch(0.32 0.1 25);
+  --relay-p2-soft: oklch(0.32 0.1 70);
+  --relay-p3-soft: oklch(0.3 0.08 220);
+  --relay-p4-soft: oklch(0.28 0.01 260);
+  --relay-good-soft: oklch(0.28 0.08 155);
+  --relay-warn-soft: oklch(0.32 0.1 75);
+  --relay-bad-soft: oklch(0.3 0.1 25);
+  --relay-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --relay-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 12px rgba(0, 0, 0, 0.2);
+  --relay-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.35), 0 2px 6px rgba(0, 0, 0, 0.2);
 
-  --relay-accent-soft:     oklch(0.32  0.08  265);
-  --relay-accent-text:     oklch(0.82  0.16  265);
-  --relay-text-soft:       oklch(0.82  0.008 260);
-  --relay-text-faint:      oklch(0.52  0.012 260);
-  --relay-good:            oklch(0.6   0.14  155);
-  --relay-good-soft:       oklch(0.28  0.08  155);
-  --relay-warn:            oklch(0.72  0.16  75);
-  --relay-warn-soft:       oklch(0.32  0.1   75);
-  --relay-bad:             oklch(0.6   0.22  25);
-  --relay-bad-soft:        oklch(0.3   0.1   25);
-  --relay-p1:              oklch(0.58  0.22  25);
-  --relay-p1-soft:         oklch(0.32  0.1   25);
-  --relay-p2:              oklch(0.66  0.19  55);
-  --relay-p2-soft:         oklch(0.32  0.1   70);
-  --relay-p3:              oklch(0.62  0.15  220);
-  --relay-p3-soft:         oklch(0.3   0.08  220);
-  --relay-p4:              oklch(0.62  0.025 260);
-  --relay-p4-soft:         oklch(0.28  0.01  260);
-
-  --chart-1: oklch(0.7  0.18  265);
-  --chart-2: oklch(0.62 0.15  220);
-  --chart-3: oklch(0.60 0.14  155);
-  --chart-4: oklch(0.66 0.19  55);
-  --chart-5: oklch(0.58 0.22  25);
-
-  --sidebar:                   oklch(0.19  0.012 260);
-  --sidebar-foreground:        oklch(0.96  0.005 260);
-  --sidebar-primary:           oklch(0.7   0.18  265);
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent:            oklch(0.26  0.014 260);
-  --sidebar-accent-foreground: oklch(0.96  0.005 260);
-  --sidebar-border:            oklch(0.3   0.012 260);
-  --sidebar-ring:              oklch(0.32  0.08  265);
+  --background: var(--relay-bg);
+  --foreground: var(--relay-text);
+  --card: var(--relay-surface);
+  --card-foreground: var(--relay-text);
+  --popover: var(--relay-surface);
+  --popover-foreground: var(--relay-text);
+  --primary: var(--relay-accent);
+  --primary-foreground: #ffffff;
+  --secondary: var(--relay-surface-2);
+  --secondary-foreground: var(--relay-text);
+  --muted: var(--relay-bg-soft);
+  --muted-foreground: var(--relay-text-muted);
+  --accent: var(--relay-accent-soft);
+  --accent-foreground: var(--relay-accent-text);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: var(--relay-border);
+  --input: var(--relay-border);
+  --ring: var(--relay-accent);
+  --chart-1: var(--relay-accent);
+  --chart-2: var(--relay-good);
+  --chart-3: var(--relay-warn);
+  --chart-4: var(--relay-bad);
+  --chart-5: var(--relay-text-muted);
+  --sidebar: var(--relay-surface);
+  --sidebar-foreground: var(--relay-text-soft);
+  --sidebar-primary: var(--relay-accent);
+  --sidebar-primary-foreground: var(--relay-on-accent);
+  --sidebar-accent: var(--relay-surface-2);
+  --sidebar-accent-foreground: var(--relay-text);
+  --sidebar-border: var(--relay-border);
+  --sidebar-ring: var(--relay-accent);
 }
 
 @layer base {
@@ -168,8 +202,19 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-size: 14px;
+    line-height: 1.5;
+    letter-spacing: 0;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
   html {
-    @apply font-sans;
+    font-family: var(--font-sans-stack);
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-sans-stack);
+    font-weight: 600;
+    letter-spacing: 0;
   }
 }

@@ -1,70 +1,70 @@
-# Feature Guide: Relay Design System
+# Relay Design System
 
-## What it does
+## Source
 
-Replaces the default shadcn/Tailwind colour palette with a cohesive "Relay" design language:
+Relay is the visual system for the ticketing app redesign. The repo-local handover is `DESIGN.md`; the upstream Claude Design prototype lives at `/Users/ram/Downloads/ticket system`.
 
-- **Indigo accent** (`oklch(0.52 0.21 265)`) replaces the default blue primary, used for buttons, links, sidebar highlights, and focused ring states.
-- **Priority badges** — `PriorityBadge` renders P1–P4 labels with severity colours (red → orange → sky → slate) so operators can triage at a glance.
-- **Status pills** — `StatusPill` maps each workflow state to a semantic tone (violet=new, indigo=in-progress, amber=on-hold, emerald=resolved, slate=cancelled) instead of a generic outline badge.
-- **SLA badges** — `SlaBadge` uses `--relay-good/warn/bad` tokens that adapt to light/dark mode automatically.
-- Both light and dark themes ship tokens for every semantic colour.
+The prototype files should be read as component and behavior references:
 
-## How it works
+- `app.jsx` -> shell, sidebar, topbar, persona routing.
+- `screens.jsx` -> dashboard, list, detail, login, requester, and user-management surfaces.
+- `ui.jsx` -> reusable primitives for avatar, status, priority, SLA, sentiment, buttons, and cards.
+- `styles*.css` -> tokens, density, table, chip, timeline, and shell styling.
+- `uploads/` -> inspiration images for density and product-quality bar, not literal app assets.
 
-### Token layer (`src/app/globals.css`)
+## Principles
 
-Custom CSS properties are declared inside `@layer base` on `:root` (light) and `.dark` scopes. They live outside the shadcn variable block so they don't conflict with shadcn's theming.
+- Build an operational service-desk UI, not a marketing or gallery page.
+- Keep screens compact, scannable, and data-forward.
+- Surface ticket ID, summary, priority, status, SLA, requester, and owner consistently.
+- Use tokens and shared primitives for semantic UI.
+- Preserve existing auth, permissions, route structure, and data behavior.
 
+## Tokens
+
+Relay tokens live in `src/app/globals.css` and are exposed as CSS variables:
+
+- Surfaces: `--relay-bg`, `--relay-bg-soft`, `--relay-surface`, `--relay-surface-2`, `--relay-hover`.
+- Borders: `--relay-border`, `--relay-border-soft`, `--relay-border-strong`.
+- Text: `--relay-text`, `--relay-text-soft`, `--relay-text-muted`, `--relay-text-faint`.
+- Accent: `--relay-accent`, `--relay-accent-soft`, `--relay-accent-text`, `--relay-accent-strong`.
+- Layout: `--relay-sidebar-w`, `--relay-topbar-h`, `--relay-row-h`, `--relay-pad-x`, `--relay-pad-y`.
+- Priority: `--relay-p1`, `--relay-p1-soft`, through `--relay-p4`, `--relay-p4-soft`.
+- SLA/status: `--relay-good`, `--relay-good-soft`, `--relay-warn`, `--relay-warn-soft`, `--relay-bad`, `--relay-bad-soft`.
+
+## Shared Primitives
+
+Use `src/components/ticket-primitives.tsx` instead of ad hoc badge markup:
+
+```tsx
+<PriorityBadge priority={ticket.priority} />
+<StatusPill status={ticket.status} />
+<SlaBadge deadline={ticket.deadline} status={ticket.status} />
+<SentimentChip sentiment={ticket.sentiment} />
+<FilterChip active={currentStatus === "progress"}>In progress</FilterChip>
 ```
---relay-p1/p2/p3/p4          priority foreground colours
---relay-p1-soft/…-soft       priority background (tinted pill surfaces)
---relay-good/warn/bad         SLA semantic foregrounds
---relay-good-soft/…-soft      SLA semantic backgrounds
-```
 
-These are OKLCH values so they perceptually interpolate well across themes.
+Semantic mappings:
 
-### Component layer
+- Priority: `P1 · Critical`, `P2 · High`, `P3 · Normal`, `P4 · Low`.
+- Status: new/requested violet, in-progress/approved indigo, hold/pending amber, resolved/implemented emerald, cancelled slate.
+- SLA: on-track muted with green dot, soon amber, imminent/breached red, closed muted.
+- Sentiment: frustrated red, neutral slate, calm green/teal.
 
-| Component | File | Technique |
-|---|---|---|
-| `PriorityBadge` | `src/components/priority-badge.tsx` | `style` prop with `var(--relay-p*)` |
-| `StatusPill` | `src/components/status-pill.tsx` | Tailwind semantic colour classes (violet/indigo/amber/emerald/slate) |
-| `SlaBadge` | `src/components/sla-badge.tsx` | `style` prop with `var(--relay-good/warn/bad)` |
+## What Not To Do
 
-`StatusPill` uses Tailwind colour classes rather than CSS variables because the tones map cleanly to Tailwind's named palette, avoiding extra token definitions.
+- Do not follow the old Apple-style design direction.
+- Do not hardcode semantic colors in route files.
+- Do not use decorative orbs, bokeh, or marketing hero composition.
+- Do not use uploaded inspiration screenshots as literal assets.
+- Do not let badge, nav, button, or table text clip or overlap.
+- Do not introduce negative letter-spacing in final CSS.
 
-### Wiring
+## Verification
 
-All three components are wired into every list and detail page under both `(staff)` and `(user)` route groups. The `Badge` component from shadcn is kept for other uses but no longer used for ticket status/priority display.
+For each implementation slice:
 
-## Tradeoffs
-
-| Decision | Chosen | Alternative | Rationale |
-|---|---|---|---|
-| Token delivery | CSS custom properties in `globals.css` | Extend `tailwind.config.ts` | Config extension requires Tailwind class generation at build time; CSS vars work at runtime and adapt to dark mode without extra classes |
-| StatusPill colouring | Tailwind semantic classes | CSS vars | Tailwind's named tones (violet, indigo, amber…) are semantically meaningful and cover both light/dark variants without writing custom tokens |
-| PriorityBadge colouring | CSS vars via `style` | Tailwind arbitrary values | Arbitrary values (`bg-[oklch(...)]`) bypass PurgeCSS/Tailwind scanning reliably but are verbose; CSS vars are cleaner and DRY |
-| Geist font | Already loaded via `next/font` | System font stack | No change needed — Geist was already in the project |
-
-## Known limitations
-
-- `StatusPill` covers all current status keys but new statuses added to the DB will fall back to a slate "Unknown" pill rather than surfacing a type error.
-- The Tailwind colour classes used by `StatusPill` (e.g. `bg-violet-100`) are not themeable via `--relay-*` tokens — changing the design palette requires updating the component directly.
-- `ChangeRequest` tickets have no `priority` or `deadline` fields in the DB, so they show neither `PriorityBadge` nor `SlaBadge` on the change list page.
-- The sidebar active-item indigo colour is set via `--sidebar-primary` in `globals.css`; if shadcn updates its sidebar component the variable name may change.
-
-## What I would do next
-
-**Short-term**
-- Add a Storybook story (or Vitest snapshot) for each badge/pill so regressions are caught automatically.
-- Exhaustively test dark mode rendering — the OKLCH values look correct in theory but need visual review on actual dark backgrounds.
-
-**Medium-term**
-- Add `priority` and `deadline` to `ChangeRequest` so the change list gets full SLA and priority treatment.
-- Export a `designTokens` object from a TS file so the same values are used in both CSS and any JS animation/canvas code.
-
-**Long-term**
-- Replace scattered `bg-violet-100 text-violet-700` class strings in `StatusPill` with a single `data-tone` attribute styled via CSS — cleaner separation of logic and style.
-- Introduce a Figma token file synced to `globals.css` via Style Dictionary so designers and engineers share one source of truth.
+- Run `npm run lint`.
+- Manually check changed pages at desktop and mobile widths.
+- Confirm light and dark token combinations remain readable.
+- Confirm existing route links, filters, pagination, auth, and role gates still work.

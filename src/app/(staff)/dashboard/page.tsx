@@ -1,10 +1,22 @@
 import Link from 'next/link';
 import { format } from 'date-fns';
-import { AlertCircleIcon, ClipboardListIcon, GitPullRequestIcon, UsersIcon } from 'lucide-react';
+import {
+  AlertCircleIcon,
+  ArrowUpRightIcon,
+  ClipboardListIcon,
+  GitPullRequestIcon,
+  UsersIcon,
+} from 'lucide-react';
 
 import { requireStaff } from '@/lib/auth-helpers';
 import { SiteHeader } from '@/components/site-header';
-import { Badge } from '@/components/ui/badge';
+import { PriorityBadge, SlaBadge, StatusPill } from '@/components/ticket-primitives';
+import {
+  AttentionList,
+  MetricCard,
+  SegmentedSlaBar,
+} from '@/components/operations-primitives';
+import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
@@ -19,97 +31,139 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { PriorityBadge } from '@/components/priority-badge';
 import { getDashboardStats } from './data';
-import { NewTicketModal } from '@/components/new-ticket-modal';
 
 export default async function DashboardPage() {
   const session = await requireStaff();
   const first = session.user.firstname?.trim() || session.user.email;
   const stats = await getDashboardStats();
+  const metricIcons = [
+    <AlertCircleIcon key="incidents" className="size-3.5" />,
+    <ClipboardListIcon key="requests" className="size-3.5" />,
+    <GitPullRequestIcon key="changes" className="size-3.5" />,
+    <UsersIcon key="users" className="size-3.5" />,
+  ];
 
   return (
     <>
-      <SiteHeader title="Dashboard" />
-      <div className="flex flex-1 flex-col gap-4 p-4 md:gap-6 md:p-6">
-        <div className="flex items-center justify-between">
-          <p className="text-muted-foreground text-sm">
-            Welcome back, <span className="font-medium text-foreground">{first}</span>
-          </p>
-          <NewTicketModal isStaff={true} />
+      <SiteHeader title="Operations" />
+      <div className="mx-auto flex w-full max-w-[1480px] flex-1 flex-col gap-4 p-4 md:gap-5 md:p-6">
+        <div className="flex flex-col gap-3 border-b border-[color:var(--relay-border-soft)] pb-4 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase text-[color:var(--relay-accent-text)]">
+              Live queue
+            </p>
+            <h1 className="mt-1 text-xl font-semibold text-foreground md:text-2xl">
+              Welcome back, {first}
+            </h1>
+            <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+              {format(new Date(), 'EEEE, d MMM')} · live workload across your queue.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              render={<Link href="/incidents">View incidents</Link>}
+            />
+            <Button render={<Link href="/incidents/new">Log incident</Link>} />
+          </div>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard
-            title="Open incidents"
-            value={stats.openIncidents}
-            icon={<AlertCircleIcon className="size-4 text-muted-foreground" />}
-            href="/incidents"
-          />
-          <StatCard
-            title="Open service requests"
-            value={stats.openRequests}
-            icon={<ClipboardListIcon className="size-4 text-muted-foreground" />}
-            href="/requests"
-          />
-          <StatCard
-            title="Open change requests"
-            value={stats.openChanges}
-            icon={<GitPullRequestIcon className="size-4 text-muted-foreground" />}
-            href="/change"
-          />
-          <StatCard
-            title="Active users"
-            value={stats.totalUsers}
-            icon={<UsersIcon className="size-4 text-muted-foreground" />}
-            href="/users"
-          />
+          {stats.metrics.map((metric, index) => (
+            <MetricCard
+              key={metric.label}
+              metric={metric}
+              icon={metricIcons[index]}
+              accentClassName="text-muted-foreground"
+            />
+          ))}
         </div>
 
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className="grid gap-4 xl:grid-cols-[1.2fr_1fr_1fr]">
           <Card>
             <CardHeader>
-              <CardTitle>Open incidents by priority</CardTitle>
+              <CardTitle>SLA compliance</CardTitle>
+              <p className="text-xs text-muted-foreground">Open incidents · current queue</p>
             </CardHeader>
-            <CardContent>
-              {stats.priorityBreakdown.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No open incidents.</p>
-              ) : (
-                <ul className="flex flex-col gap-2">
-                  {stats.priorityBreakdown.map((row) => (
-                    <li key={row.label} className="flex items-center gap-3 text-sm">
-                      <span className="w-20 text-muted-foreground">{row.label}</span>
-                      <div className="flex-1 bg-muted rounded-full h-2 overflow-hidden">
-                        <div
-                          className="bg-primary h-2 rounded-full"
-                          style={{
-                            width: `${Math.round((row.count / stats.openIncidents) * 100)}%`,
-                          }}
-                        />
-                      </div>
-                      <span className="w-6 text-right font-medium">{row.count}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
+            <CardContent className="space-y-5">
+              <div className="flex flex-col gap-5 sm:flex-row sm:items-end">
+                <div className="shrink-0">
+                  <div className="text-4xl font-semibold leading-none tabular-nums">
+                    {stats.slaCompliance}%
+                  </div>
+                  <div className="mt-2 text-xs text-muted-foreground">tickets within SLA</div>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <SegmentedSlaBar segments={stats.slaSegments} />
+                </div>
+              </div>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
-              <CardTitle>Recent open incidents</CardTitle>
+              <CardTitle>Open by priority</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="flex flex-col gap-2.5">
+                {stats.priorityBreakdown.map((row) => {
+                  const max = Math.max(...stats.priorityBreakdown.map((item) => item.count), 1);
+
+                  return (
+                    <li key={row.priority} className="grid grid-cols-[62px_minmax(0,1fr)_32px] items-center gap-3">
+                      <PriorityBadge priority={row.priority} compact />
+                      <div className="h-2 overflow-hidden rounded-full bg-[color:var(--relay-bg-soft)]">
+                        <div
+                          className="h-full rounded-full bg-[color:var(--relay-accent)]"
+                          style={{ width: `${(row.count / max) * 100}%` }}
+                        />
+                      </div>
+                      <span className="text-right text-sm font-semibold tabular-nums">{row.count}</span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </CardContent>
+          </Card>
+
+          <AttentionList items={stats.attentionItems} />
+        </div>
+
+        <div className="grid gap-4">
+          <Card>
+            <CardHeader className="flex-row items-center justify-between">
+              <div>
+                <CardTitle>Recent open incidents</CardTitle>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Newest first · click to open.
+                </p>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                render={
+                  <Link href="/incidents">
+                  Open queue
+                  <ArrowUpRightIcon className="size-3.5" />
+                  </Link>
+                }
+              />
             </CardHeader>
             <CardContent>
               {stats.recentIncidents.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No open incidents.</p>
               ) : (
-                <Table>
+                <Table className="min-w-[760px]">
                   <TableHeader>
                     <TableRow>
                       <TableHead>ID</TableHead>
                       <TableHead>Summary</TableHead>
+                      <TableHead>Requester</TableHead>
                       <TableHead>Priority</TableHead>
-                      <TableHead>Created</TableHead>
+                      <TableHead>SLA</TableHead>
+                      <TableHead>Owner</TableHead>
+                      <TableHead>Status</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -125,13 +179,20 @@ export default async function DashboardPage() {
                             {t.summary}
                           </Link>
                         </TableCell>
-                        <TableCell>
-                          <Badge variant="outline">
-                            <PriorityBadge priority={t.priority} />
-                          </Badge>
+                        <TableCell className="text-muted-foreground">
+                          {t.requester}
                         </TableCell>
-                        <TableCell className="text-muted-foreground text-xs">
-                          {format(t.createdAt, 'PP')}
+                        <TableCell>
+                          <PriorityBadge priority={t.priority} compact />
+                        </TableCell>
+                        <TableCell>
+                          <SlaBadge deadline={t.deadline} status={t.status} />
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {t.owner ?? 'Unassigned'}
+                        </TableCell>
+                        <TableCell>
+                          <StatusPill status={t.status} />
                         </TableCell>
                       </TableRow>
                     ))}
@@ -143,31 +204,5 @@ export default async function DashboardPage() {
         </div>
       </div>
     </>
-  );
-}
-
-function StatCard({
-  title,
-  value,
-  icon,
-  href,
-}: {
-  title: string;
-  value: number;
-  icon: React.ReactNode;
-  href: string;
-}) {
-  return (
-    <Link href={href}>
-      <Card className="hover:bg-muted/50 transition-colors cursor-pointer h-full">
-        <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle className="text-sm font-medium">{title}</CardTitle>
-          {icon}
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{value}</div>
-        </CardContent>
-      </Card>
-    </Link>
   );
 }

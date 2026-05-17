@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
@@ -27,18 +28,18 @@ import { Textarea } from '@/components/ui/textarea';
 
 type EngineerOption = { id: string; label: string; email: string };
 
-type Prefill = { description?: string; priority?: number };
-
 export function IncidentCreateForm({
   userId,
   engineers,
   isStaff,
-  prefill,
+  submitterLabel,
+  cancelHref,
 }: {
   userId: string;
   engineers: EngineerOption[];
   isStaff: boolean;
-  prefill?: Prefill;
+  submitterLabel?: string;
+  cancelHref?: string;
 }) {
   const [uploadedUrl, setUploadedUrl] = React.useState<string>('');
   const [uploading, setUploading] = React.useState(false);
@@ -52,8 +53,8 @@ export function IncidentCreateForm({
     resolver: zodResolver(incidentCreateSchema),
     defaultValues: {
       summary: '',
-      description: prefill?.description ?? '',
-      priority: prefill?.priority ?? 3,
+      description: '',
+      priority: 3,
       impact: 'one',
       owner: '',
       noteValue: '',
@@ -209,10 +210,22 @@ export function IncidentCreateForm({
           ) : null}
         </Field>
 
-        <div className="flex justify-end">
-          <Button type="submit" disabled={submitting || uploading}>
-            {submitting ? 'Creating…' : 'Create incident'}
-          </Button>
+        <div className="flex flex-col gap-3 border-t border-[color:var(--relay-border-soft)] pt-4 sm:flex-row sm:items-center sm:justify-between">
+          <span className="text-xs text-muted-foreground">
+            {submitterLabel ? `Submitting as ${submitterLabel}` : 'Ready to submit'}
+          </span>
+          <div className="flex justify-end gap-2">
+            {cancelHref ? (
+              <Button
+                type="button"
+                variant="outline"
+                render={<Link href={cancelHref}>Cancel</Link>}
+              />
+            ) : null}
+            <Button type="submit" disabled={submitting || uploading}>
+              {submitting ? 'Creating…' : 'Create incident'}
+            </Button>
+          </div>
         </div>
       </FieldGroup>
     </form>

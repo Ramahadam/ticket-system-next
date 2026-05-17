@@ -1,6 +1,10 @@
 import { prisma } from '@/lib/prisma';
-import { PRIORITY_LABELS } from '@/lib/constants';
 import { TicketStatus, ChangeStatus } from '@/generated/prisma/client';
+import {
+  buildAttentionItems,
+  buildDashboardMetric,
+  summarizeSlaSegments,
+} from '@/lib/dashboard-presentation';
 
 const OPEN_STATUSES: TicketStatus[] = [
   TicketStatus.loged,
@@ -22,7 +26,7 @@ export async function getDashboardStats() {
     openRequests,
     openChanges,
     totalUsers,
-    recentIncidents,
+    openIncidentRows,
     priorityCounts,
   ] = await Promise.all([
     prisma.incident.count({ where: { status: { in: OPEN_STATUSES } } }),
@@ -32,13 +36,14 @@ export async function getDashboardStats() {
     prisma.incident.findMany({
       where: { status: { in: OPEN_STATUSES } },
       orderBy: { createdAt: 'desc' },
-      take: 5,
       select: {
         id: true,
         summary: true,
         status: true,
         priority: true,
         requester: true,
+        owner: true,
+        deadline: true,
         createdAt: true,
       },
     }),
@@ -51,17 +56,35 @@ export async function getDashboardStats() {
     ),
   ]);
 
+  const now = new Date();
+  const slaSegments = summarizeSlaSegments(openIncidentRows, now);
+  const attentionItems = buildAttentionItems(openIncidentRows, now);
+
   const priorityBreakdown = PRIORITIES.map((p, i) => ({
-    label: PRIORITY_LABELS[p] ?? String(p),
+    priority: p,
     count: priorityCounts[i],
-  })).filter((row) => row.count > 0);
+  }));
 
   return {
+    metrics: [
+      buildDashboardMetric('Open incidents', openIncidents, '/incidents'),
+      buildDashboardMetric('Open requests', openRequests, '/requests'),
+      buildDashboardMetric('Open changes', openChanges, '/change'),
+      buildDashboardMetric('Active users', totalUsers, '/users'),
+    ],
     openIncidents,
     openRequests,
     openChanges,
     totalUsers,
+    slaSummary: {
+      breached: slaSegments.breached,
+      dueSoon: slaSegments.dueSoon,
+      onTrack: slaSegments.onTrack,
+    },
+    slaSegments,
+    slaCompliance: slaSegments.compliance,
+    attentionItems,
     priorityBreakdown,
-    recentIncidents,
+    recentIncidents: openIncidentRows.slice(0, 6),
   };
 }
